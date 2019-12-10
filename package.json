@@ -1,0 +1,20 @@
+{
+  "name": "infragen",
+  "version": "1.0.0",
+  "description": "The Infrastructure Generator",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hoverinc/infragen.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/hoverinc/infragen/issues"
+  },
+  "homepage": "https://github.com/hoverinc/infragen#readme",
+  "devDependencies": {}
+}
