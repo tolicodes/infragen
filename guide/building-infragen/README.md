@@ -2,4 +2,5 @@
 
 Starting from scratch I decided to apply those principles to InfraGen.
 
-- [Initial Planning](03-01-initial-planning.md)
+- [Initial Planning](initial-planning.md)
+- [Boilerplate](boilerplate.md)
