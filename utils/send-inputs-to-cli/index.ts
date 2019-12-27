@@ -1,5 +1,5 @@
 // anything less and inquirer doesn't catch it
-export const DEFAULT_TIMEOUT_BETWEEN_INPUTS = 300;
+export const DEFAULT_TIMEOUT_BETWEEN_INPUTS = 400;
 
 export type CLIInputs = (
   | string
