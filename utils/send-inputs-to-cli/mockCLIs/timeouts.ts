@@ -23,7 +23,7 @@ const timeoutPromise = timeout =>
 (async () => {
   await timeoutPromise(1000);
 
-  const { optionChoice } = prompt([
+  const { optionChoice } = await prompt([
     {
       message: "Which option do you want to choose?",
       name: "optionChoice",
@@ -34,7 +34,7 @@ const timeoutPromise = timeout =>
 
   await timeoutPromise(2000);
 
-  const { fullName } = prompt({
+  const { fullName } = await prompt({
     message: "What's your full name?",
     name: "fullName",
     type: "input"

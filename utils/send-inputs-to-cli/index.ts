@@ -1,4 +1,5 @@
-export const DEFAULT_TIMEOUT_BETWEEN_INPUTS = 100;
+// anything less and inquirer doesn't catch it
+export const DEFAULT_TIMEOUT_BETWEEN_INPUTS = 300;
 
 export type CLIInputs = (
   | string
@@ -39,8 +40,6 @@ export default async ({
       }),
     Promise.resolve()
   );
-
-  stdin.end();
 };
 
 // https://www.tldp.org/LDP/abs/html/escapingsection.html

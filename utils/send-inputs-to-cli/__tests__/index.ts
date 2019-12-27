@@ -5,6 +5,7 @@ interface ISendInputsToCli {
   inputs: CLIInputs;
   timeoutBetweenInputs?: number;
   bashCommand: string;
+  debug?: boolean;
 }
 
 interface ITestCLIReturn {
@@ -13,11 +14,15 @@ interface ITestCLIReturn {
   code: number;
 }
 
+const CLI_TIMEOUT = 20000;
+const DEFAULT_TIMEOUT = 5000;
+
 // a mini version of the read Test CLI used solely for testing SendInputsToCLI
 const testSendInputToCLI = async ({
   inputs,
   timeoutBetweenInputs,
-  bashCommand
+  bashCommand,
+  debug
 }: ISendInputsToCli): Promise<ITestCLIReturn> =>
   new Promise(async resolve => {
     const output = jest.fn();
@@ -26,12 +31,12 @@ const testSendInputToCLI = async ({
     const proc = child_process.exec(bashCommand);
 
     proc.stdout.on("data", data => {
-      console.log(data);
+      debug && console.log(data);
       output(data);
     });
 
     proc.stderr.on("data", data => {
-      console.error(data);
+      debug && console.error(data);
       error(data);
     });
 
@@ -42,7 +47,7 @@ const testSendInputToCLI = async ({
     });
 
     proc.on("exit", (code, sig) => {
-      console.log("CODE", code, sig);
+      debug && console.log("CODE", code, sig);
       resolve({
         code,
         output,
@@ -52,6 +57,14 @@ const testSendInputToCLI = async ({
   });
 
 describe("@infragen/util-send-inputs-to-cli", () => {
+  beforeAll(() => {
+    jest.setTimeout(CLI_TIMEOUT);
+  });
+
+  afterAll(() => {
+    jest.setTimeout(DEFAULT_TIMEOUT);
+  });
+
   it("should send input to stdin", async () => {
     const { output, error, code } = await testSendInputToCLI({
       bashCommand: "ts-node ./mockCLIs/standard.ts",
@@ -113,7 +126,7 @@ describe("@infragen/util-send-inputs-to-cli", () => {
         // Check "Option 1"
         {
           input: SPACE,
-          timeoutBeforeInput: 1100
+          timeoutBeforeInput: 1300
         },
 
         // Move to "Option 2"
@@ -131,7 +144,7 @@ describe("@infragen/util-send-inputs-to-cli", () => {
         // Type answer to "What's your name"
         {
           input: "Anatoliy Zaslavskiy",
-          timeoutBeforeInput: 2100
+          timeoutBeforeInput: 2300
         },
 
         // Submit answer to question
@@ -164,10 +177,6 @@ describe("@infragen/util-send-inputs-to-cli", () => {
     expect(output).toBeCalledWith(
       expect.stringMatching(/Your name is "Anatoliy Zaslavskiy"/)
     );
-
-    expect(output).toBeCalledWith(
-      expect.stringMatching(/Outputting "something"/)
-    );
   });
 
   it("tests a CLI with a different default timeoutBetweenInputs", async () => {
@@ -195,7 +204,7 @@ describe("@infragen/util-send-inputs-to-cli", () => {
         // Submit answer to question
         ENTER
       ],
-      timeoutBetweenInputs: 2000
+      timeoutBetweenInputs: 2300
     });
 
     expect(error.mock.calls.length).toBe(0);
@@ -222,10 +231,6 @@ describe("@infragen/util-send-inputs-to-cli", () => {
 
     expect(output).toBeCalledWith(
       expect.stringMatching(/Your name is "Anatoliy Zaslavskiy"/)
-    );
-
-    expect(output).toBeCalledWith(
-      expect.stringMatching(/Outputting "something"/)
     );
   });
 });
