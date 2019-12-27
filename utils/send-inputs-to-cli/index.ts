@@ -8,27 +8,32 @@ export type CLIInputs = (
     }
 )[];
 
+export type ISendInputsToCli = {
+  inputs: CLIInputs;
+  stdin?: NodeJS.WritableStream;
+  timeoutBetweenInputs?: number;
+};
+
 export default async ({
   inputs,
   stdin = process.stdin,
   timeoutBetweenInputs = DEFAULT_TIMEOUT_BETWEEN_INPUTS
-}: {
-  inputs: CLIInputs;
-  stdin?: NodeJS.ReadStream;
-  timeoutBetweenInputs?: number;
-}): Promise<void> => {
+}: ISendInputsToCli): Promise<void> => {
   await inputs.reduce(
     (previousPromise, input) =>
       new Promise(async resolve => {
         await previousPromise;
+        let inputString;
 
         if (typeof input !== "string") {
           timeoutBetweenInputs = input.timeoutBeforeInput;
-          input = input.input;
+          inputString = input.input;
+        } else {
+          inputString = input;
         }
 
         setTimeout(() => {
-          stdin.write(input);
+          stdin.write(inputString);
           resolve();
         }, timeoutBetweenInputs);
       }),

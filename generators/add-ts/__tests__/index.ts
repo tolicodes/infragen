@@ -20,4 +20,8 @@ describe("@infragen/generator-add-ts", () => {
     //   }
     // }
   });
+
+  it("should write a blank tsconfig.json file", () => {
+    // {}
+  });
 });

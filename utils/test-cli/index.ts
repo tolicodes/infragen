@@ -108,9 +108,9 @@ export default async ({
       error(data);
     });
 
-    await sendInputs(inputs, proc, {
+    await sendInputs({
       inputs,
-      input: proc.stdin,
+      stdin: proc.stdin,
       timeoutBetweenInputs
     });
 

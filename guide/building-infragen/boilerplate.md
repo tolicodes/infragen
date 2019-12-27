@@ -178,25 +178,6 @@ describe("@infragen/generator-add-jest", () => {
     //   }
     // };
   });
-
-  // we will configure this a little better later, but for now we will just
-  // have a few strict rules that work with prettier
-  it("should have a tslint.yml with strict rules", () => {
-    // extends:
-    //   - tslint:latest
-    //   - tslint-config-prettier
-    // rules:
-    //   typedef:
-    //     - true
-    //     - call-signature
-    //     - parameter
-    //     - arrow-call-signature
-    //     - property-declaration
-    //     - variable-declaration
-    //     - member-variable-declaration
-    //     - object-destructuring
-    //     - array-destructuring
-  });
 });
 ```
 
