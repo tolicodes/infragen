@@ -16,7 +16,7 @@ const CHOICES = [
 ];
 
 (async () => {
-  const { optionChoice, fullName } = prompt([
+  const { optionChoice, fullName } = await prompt([
     {
       message: "Which option do you want to choose?",
       name: "optionChoice",

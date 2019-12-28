@@ -6,10 +6,21 @@ import { SPACE, DOWN, ENTER } from "@infragen/util-send-inputs-to-cli";
 
 const TMP_DIR = "/tmp/";
 
+const CLI_TIMEOUT = 20000;
+const DEFAULT_TIMEOUT = 5000;
+
 describe("@infragen/util-test-cli", () => {
+  beforeAll(() => {
+    jest.setTimeout(CLI_TIMEOUT);
+  });
+
+  afterAll(() => {
+    jest.setTimeout(DEFAULT_TIMEOUT);
+  });
+
   it("tests a CLI run as a bash command", async () => {
     const { code, error, output }: ITestCLIReturn = await testCLI({
-      bashCommand: `ts-node ../mockCLI/standard.ts`,
+      bashCommand: `ts-node ./mockCLIs/standard.ts`,
       inputs: [
         // Check "Option 1"
         SPACE,
@@ -63,7 +74,7 @@ describe("@infragen/util-test-cli", () => {
 
   it("tests a CLI with a different exit code", async () => {
     const { code, error, output }: ITestCLIReturn = await testCLI({
-      bashCommand: `ts-node ../mockCLI/differentExitCode.ts`
+      bashCommand: `ts-node ./mockCLIs/differentExitCode.ts`
     });
 
     expect(output).toBeCalledWith(
@@ -79,7 +90,7 @@ describe("@infragen/util-test-cli", () => {
 
   it("tests a CLI that outputs to stderr", async () => {
     const { code, error, output }: ITestCLIReturn = await testCLI({
-      bashCommand: `ts-node ../mockCLI/outputsToStdErr.ts`
+      bashCommand: `ts-node ./mockCLIs/outputsToStdErr.ts`
     });
 
     expect(output).toBeCalledWith(
@@ -96,9 +107,9 @@ describe("@infragen/util-test-cli", () => {
   it("tests a CLI run as a node script", async () => {
     const { code, error, output }: ITestCLIReturn = await testCLI({
       nodeScript: `
-          const cli = require('../mockCLIs/needsToBeTriggeredJS.js');
+          const cli = require('${__dirname}/../mockCLIs/needsToBeTriggeredJS.js');
 
-          cli({ outputThis: something });
+          cli({ outputThis: "something" });
         `,
       inputs: [
         // Check "Option 1"
@@ -151,13 +162,13 @@ describe("@infragen/util-test-cli", () => {
     );
 
     expect(output).toBeCalledWith(
-      expect.stringMatching(/Outputting "something"/)
+      expect.stringMatching(/Outputting something/)
     );
   });
 
   it("tests a CLI with different timeouts for inputs", async () => {
     const { code, error, output }: ITestCLIReturn = await testCLI({
-      bashCommand: `ts-node ../mockCLI/timeouts.ts`,
+      bashCommand: `ts-node ./mockCLIs/timeouts.ts`,
       inputs: [
         // Check "Option 1"
         {
@@ -213,18 +224,14 @@ describe("@infragen/util-test-cli", () => {
     expect(output).toBeCalledWith(
       expect.stringMatching(/Your name is "Anatoliy Zaslavskiy"/)
     );
-
-    expect(output).toBeCalledWith(
-      expect.stringMatching(/Outputting "something"/)
-    );
   });
 
   it("tests a CLI run as node script with a different node command", async () => {
     const { code, error, output }: ITestCLIReturn = await testCLI({
       nodeScript: `
-          import cli from '../mockCLIs/needsToBeTriggeredTS.ts';
+          import cli from './mockCLIs/needsToBeTriggeredTS.ts';
 
-          cli({ outputThis: something });
+          cli({ outputThis: 'something' });
         `,
       inputs: [
         // Check "Option 1"
@@ -278,13 +285,13 @@ describe("@infragen/util-test-cli", () => {
     );
 
     expect(output).toBeCalledWith(
-      expect.stringMatching(/Outputting "something"/)
+      expect.stringMatching(/Outputting something/)
     );
   });
 
   it("tests a CLI with a different default timeoutBetweenInputs", async () => {
     const { code, error, output }: ITestCLIReturn = await testCLI({
-      bashCommand: `ts-node ../mockCLI/timeouts.ts`,
+      bashCommand: `ts-node ./mockCLIs/timeouts.ts`,
       inputs: [
         // Check "Option 1"
         SPACE,
@@ -307,7 +314,7 @@ describe("@infragen/util-test-cli", () => {
         // Submit answer to question
         ENTER
       ],
-      timeoutBetweenInputs: 2000
+      timeoutBetweenInputs: 2300
     });
 
     expect(error.mock.calls.length).toBe(0);
@@ -335,23 +342,19 @@ describe("@infragen/util-test-cli", () => {
     expect(output).toBeCalledWith(
       expect.stringMatching(/Your name is "Anatoliy Zaslavskiy"/)
     );
-
-    expect(output).toBeCalledWith(
-      expect.stringMatching(/Outputting "something"/)
-    );
   });
 
   it("tests a CLI run in a different cwd", async () => {
-    const cwd = `${TMP_DIR}/${uuidv4()}`;
+    const cwd = `${TMP_DIR}${uuidv4()}`;
     await ensureDir(cwd);
 
     const { output }: ITestCLIReturn = await testCLI({
-      bashCommand: `ts-node ../mockCLI/cwdTest.ts`
+      bashCommand: `ts-node --project "${__dirname}/../tsconfig.json"  "${__dirname}/../mockCLIs/cwdTest.ts"`,
+      cwd,
+      debug: true
     });
 
-    expect(output).toBeCalledWith(
-      expect.stringMatching(new RegExp(`My cwd is "${cwd}"`))
-    );
+    expect(output).toBeCalledWith(expect.stringMatching(cwd));
   });
 
   it("outputs debug info when debug flag is passed", async () => {
@@ -359,7 +362,7 @@ describe("@infragen/util-test-cli", () => {
     const stdErrWriteMock = jest.fn();
 
     await testCLI({
-      bashCommand: `ts-node ../mockCLI/cwdTest.ts`
+      bashCommand: `ts-node ./mockCLIs/cwdTest.ts`
     });
 
     const stdOutWriteOriginal = process.stdout.write;

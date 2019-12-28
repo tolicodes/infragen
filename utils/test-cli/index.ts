@@ -78,7 +78,7 @@ export default async ({
 
   nodeCommand = "node",
   timeoutBetweenInputs = DEFAULT_TIMEOUT_BETWEEN_INPUTS,
-  cwd = TMP_DIR,
+  cwd,
   debug = false
 }: ITestCLIOpts = {}): Promise<ITestCLIReturn> =>
   new Promise(async resolve => {
@@ -89,8 +89,8 @@ export default async ({
 
     const tmpFile: string = `${TMP_DIR}/${uuidv4()}.js`;
 
-    if (bashCommand) {
-      writeFileSync(tmpFile, bashCommand);
+    if (nodeScript) {
+      writeFileSync(tmpFile, nodeScript);
       proc = child_process.exec(`${nodeCommand} "${tmpFile}"`, {
         cwd
       });
@@ -101,27 +101,30 @@ export default async ({
     }
 
     proc.stdout.on("data", data => {
+      if (debug) {
+        console.log(data);
+      }
       output(data);
     });
 
     proc.stderr.on("data", data => {
+      if (debug) {
+        console.error(data);
+      }
       error(data);
     });
 
-    await sendInputs({
-      inputs,
-      stdin: proc.stdin,
-      timeoutBetweenInputs
-    });
+    if (inputs) {
+      await sendInputs({
+        inputs,
+        stdin: proc.stdin,
+        timeoutBetweenInputs
+      });
+    }
 
     proc.on("exit", code => {
       if (nodeScript && !debug) {
         unlinkSync(tmpFile);
-      }
-
-      if (debug) {
-        console.log(output.mock.calls);
-        console.error(error.mock.calls);
       }
 
       resolve({

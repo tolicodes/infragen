@@ -16,7 +16,7 @@ const CHOICES = [
 ];
 
 module.exports = async ({ outputThis }) => {
-  const { optionChoice, fullName } = inquirer.prompt([
+  const { optionChoice, fullName } = await inquirer.prompt([
     {
       message: "Which option do you want to choose?",
       name: "optionChoice",
