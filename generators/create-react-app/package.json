@@ -7,8 +7,5 @@
     "start": "yarn ts-node ."
   },
   "author": "",
-  "license": "ISC",
-  "dependencies": {
-    "@types/jest": "^24.0.23"
-  }
+  "license": "ISC"
 }

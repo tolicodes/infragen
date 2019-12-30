@@ -3,9 +3,7 @@
   "version": "1.0.0",
   "description": "The Infrastructure Generator",
   "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
+  "scripts": {},
   "repository": {
     "type": "git",
     "url": "git+https://github.com/hoverinc/infragen.git"
@@ -15,13 +13,5 @@
   "bugs": {
     "url": "https://github.com/hoverinc/infragen/issues"
   },
-  "homepage": "https://github.com/hoverinc/infragen#readme",
-  "devDependencies": {
-    "jest": "^24.9.0",
-    "t": "^0.5.1",
-    "ts-jest": "^24.2.0"
-  },
-  "dependencies": {
-    "@types/node": "^12.12.17"
-  }
+  "homepage": "https://github.com/hoverinc/infragen#readme"
 }

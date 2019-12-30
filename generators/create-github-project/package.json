@@ -8,18 +8,5 @@
     "test:watch": "jest --config jest.config.json --watch"
   },
   "author": "",
-  "license": "ISC",
-  "devDependencies": {
-    "@babel/preset-env": "^7.7.4",
-    "@types/jest": "^24.0.23",
-    "@types/node": "^12.12.17",
-    "babel-jest": "^24.9.0",
-    "jest": "^24.9.0",
-    "ts-jest": "^24.2.0",
-    "typescript": "^3.7.2"
-  },
-  "dependencies": {
-    "@types/jest": "^24.0.23",
-    "ts-node": "^8.5.4"
-  }
+  "license": "ISC"
 }

@@ -14,6 +14,7 @@ interface ITestCLIReturn {
   code: number;
 }
 
+// These tests take a while to run (vs usual 5s)
 const CLI_TIMEOUT = 20000;
 const DEFAULT_TIMEOUT = 5000;
 

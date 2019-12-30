@@ -1,11 +1,9 @@
 {
-  "name": "@infragen/generator-create-node-monorepo",
+  "name": "@infragen/generator-create-node-module",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-  "scripts": {
-    "start": "yarn ts-node ."
-  },
+  "scripts": {},
   "author": "",
   "license": "ISC"
 }
