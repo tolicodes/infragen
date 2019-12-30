@@ -37,5 +37,5 @@ module.exports = async ({ outputThis }) => {
 
   console.log(`Your name is "${fullName}"`);
 
-  console.log(`Outputting ${outputThis}`)
+  console.log(`Outputting "${outputThis}"`)
 }

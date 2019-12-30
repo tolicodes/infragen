@@ -69,17 +69,20 @@ export interface ITestCLIOpts {
   // Should we print out all the calls to the output and error mocks
   // otherwise use
   debug?: boolean;
+
+  // file extension (ex: change to ts if using ts-node)
+  extension?: string;
 }
 
 export default async ({
   bashCommand,
   nodeScript,
   inputs,
-
   nodeCommand = "node",
   timeoutBetweenInputs = DEFAULT_TIMEOUT_BETWEEN_INPUTS,
   cwd,
-  debug = false
+  debug = false,
+  extension = "js"
 }: ITestCLIOpts = {}): Promise<ITestCLIReturn> =>
   new Promise(async resolve => {
     const output = jest.fn();
@@ -87,7 +90,7 @@ export default async ({
 
     let proc: Process;
 
-    const tmpFile: string = `${TMP_DIR}/${uuidv4()}.js`;
+    const tmpFile: string = `${TMP_DIR}/${uuidv4()}.${extension}`;
 
     if (nodeScript) {
       writeFileSync(tmpFile, nodeScript);

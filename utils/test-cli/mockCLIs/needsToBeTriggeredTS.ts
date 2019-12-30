@@ -16,7 +16,7 @@ const CHOICES = [
 ];
 
 export default async ({ outputThis }) => {
-  const { optionChoice, fullName } = prompt([
+  const { optionChoice, fullName } = await prompt([
     {
       message: "Which option do you want to choose?",
       name: "optionChoice",
@@ -37,5 +37,5 @@ export default async ({ outputThis }) => {
 
   console.log(`Your name is "${fullName}"`);
 
-  console.log(`Outputting ${outputThis}`);
+  console.log(`Outputting "${outputThis}"`);
 };
