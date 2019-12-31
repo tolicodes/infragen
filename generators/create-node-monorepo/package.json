@@ -1,5 +1,5 @@
 {
-  "name": "@infragen/generator-create-node-module",
+  "name": "@infragen/generator-create-node-monorepo",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",

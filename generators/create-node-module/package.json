@@ -1,5 +1,5 @@
 {
-  "name": "@infragen/generator-create-react-app",
+  "name": "@infragen/generator-create-node-module",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",

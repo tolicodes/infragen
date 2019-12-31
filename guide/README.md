@@ -4,3 +4,4 @@
 - [Building InfraGen](building-infragen/README.md)
   - [Initial Planning](building-infragen/initial-planning.md)
   - [Boilerplate](building-infragen/boilerplate.md)
+  - [Building CLI Test Util](building-cli-test-util.md)

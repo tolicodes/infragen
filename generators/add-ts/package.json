@@ -1,5 +1,5 @@
 {
-  "name": "@infragen/generator-add-babel",
+  "name": "@infragen/generator-add-ts",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",

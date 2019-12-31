@@ -4,3 +4,4 @@ Starting from scratch I decided to apply the principles I mentioned in the prefa
 
 - [Initial Planning](initial-planning.md)
 - [Boilerplate](boilerplate.md)
+- [Building CLI Test Util](building-cli-test-util.md)

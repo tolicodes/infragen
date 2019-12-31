@@ -1,0 +1,26 @@
+{
+  "name": "@infragen/util-test-cli",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest --config jest.config.json"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@babel/preset-env": "^7.7.4",
+    "babel-jest": "^24.9.0",
+    "fs-extra": "^8.1.0",
+    "inquirer": "^7.0.1",
+    "jest": "^24.9.0",
+    "ts-jest": "^24.2.0",
+    "typescript": "^3.7.2"
+  },
+  "dependencies": {
+    "@infragen/util-send-inputs-to-cli": "^1.0.0",
+    "@types/jest": "^24.0.23",
+    "@types/node": "^12.12.17",
+    "ts-node": "^8.5.4"
+  }
+}
