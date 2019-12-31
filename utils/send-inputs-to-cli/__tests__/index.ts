@@ -2,15 +2,21 @@ import * as child_process from "child_process";
 import sendInputsToCLI, { CLIInputs, SPACE, DOWN, ENTER } from "../index";
 
 interface ISendInputsToCli {
+  // inputs to send
   inputs: CLIInputs;
   timeoutBetweenInputs?: number;
+  // the bash command to run
   bashCommand: string;
+  // output to the screen the stdout/sterr from the process
   debug?: boolean;
 }
 
 interface ITestCLIReturn {
+  // mock function that fires every stdout event
   output: jest.Mock;
+  // mock function that fires every sterr event
   error: jest.Mock;
+  // exit code of the process
   code: number;
 }
 

@@ -1,6 +1,12 @@
 // anything less and inquirer doesn't catch it
 export const DEFAULT_TIMEOUT_BETWEEN_INPUTS = 400;
 
+// Could be a list of inputs or objects listing the input and timeout
+// before the input is fired
+//
+// ex:
+// ["hello", ENTER, "test"]
+// [{ input: "hello", timeBeforeInput: 2000 }, ENTER, "test"]
 export type CLIInputs = (
   | string
   | {
@@ -11,7 +17,10 @@ export type CLIInputs = (
 
 export type ISendInputsToCli = {
   inputs: CLIInputs;
+  // should be from `child_process.exec` stdin stream
   stdin?: NodeJS.WritableStream;
+
+  // default timeout before an input (default 400ms)
   timeoutBetweenInputs?: number;
 };
 
@@ -20,6 +29,9 @@ export default async ({
   stdin = process.stdin,
   timeoutBetweenInputs = DEFAULT_TIMEOUT_BETWEEN_INPUTS
 }: ISendInputsToCli): Promise<void> => {
+  // go through each input, waiting for the last timeout to
+  // resolve
+  // write the input to stdin
   await inputs.reduce(
     (previousPromise, input) =>
       new Promise(async resolve => {

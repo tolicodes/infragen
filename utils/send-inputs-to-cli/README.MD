@@ -5,7 +5,7 @@ This is a generic utility that should be able to send inputs to any CLI/process 
 ## Supported Features:
 
 - Send inputs to a CLI
-- Send different timeout for inputs
+- Set different timeout for inputs
 - Set a default `timeoutBetweenInputs`
 
 To see examples of each please see tests under `__tests__`
