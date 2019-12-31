@@ -2,11 +2,13 @@
 
 Before we start coding we actually have to set up some minimal tools and boilerplate for our actual project. If only there was a tool that 😉
 
-Our `create-github-project` generator is going to be a Node app. Luckily, it needs a lot of the same tools as our `create-react-app` generator. (Babel, TS, and Jest). So we could preemptively make that part modular.
+Our `create-github-project` generator is going to be a Node app. Luckily, it needs a lot of the same tools as our `create-react-app` generator. (TS, and Jest). So we could preemptively make that part modular.
 
 ## MonoRepo with Lerna
 
-We also want to make InfraGen a monorepo. One of the core principles is modularity. We want to separate every utility, generator, etc into it's own standalone module that could be run and tested individual from the entire app. [Lerna](https://github.com/lerna/lerna) is a tool which will make our life easy in terms of managing all of our packages.
+We also want to make InfraGen a monorepo. One of the core principles is modularity. We want to separate every utility, generator, etc into it's own standalone module that could be run and tested individual from the entire app.
+
+[Lerna](https://github.com/lerna/lerna) is a tool which will make our life easy in terms of managing all of our packages.
 
 Perhaps someday we will make a Node Monorepo generator? Even though that's far in the future we can make a directory and take notes as we do our setup.
 
@@ -31,6 +33,8 @@ infragen
 ```js
 describe("@infragen/generator-create-node-monorepo", () => {
   it("should run the create-github-project generator");
+
+  it("should run npm init");
 
   it(
     "setup package.json for the base project with the name provided in the create-github-project generator"
@@ -59,57 +63,33 @@ That’s as detailed as we should get. Remember, all of this is just notes for l
 
 Now we want to setup our first package `create-react-app`. Again we can detail all the steps in a tests file and categorize parts that should be modularized.
 
-We know that it will be a Node module so:
+A React app, like our submodules, it actually a node module. We can write all the configuration there and then run the generator inside of `create-react-app`.
 
 `infragen/generators/create-node-module/__tests__/index.ts`
 
 ```js
 describe("@infragen/generator-create-node-module", () => {
-  it("should ask for the name of the package");
+  it(
+    "should ask for the name of the package (or take it from `create-github-project`"
+  );
 
-  it("should create a directory with that name");
+  it("should create a directory with that name (or use current directory)");
 
   it("should create a package.json with that name");
 
   it("should install and configure TS");
 
-  it("should install and configure Babel");
-
   it("should install and configure Jest");
 });
 ```
 
-And now let's break down the TS, Babel, and Jest installation steps into modules:
-
-`infragen/generators/add-babel/__tests__/index.ts`
-
-```js
-describe("@infragen/generator-add-babel", () => {
-  it("should run `yarn add --dev @babel/core @babel/cli @babel/preset-env`");
-
-  // note we opt for a json file since writing to a JSON file programmatically will be simpler than the default .js file
-  it("if we are in a Node app, we should setup preset-env targeting the current Node version in the babel.config.json file", () => {
-    // {
-    //   presets: [
-    //     [
-    //       "@babel/preset-env",
-    //       {
-    //         targets: {
-    //           node: "current"
-    //         }
-    //       }
-    //     ]
-    //   ]
-    // };
-  });
-});
-```
+And now let's break down the TS, and Jest installation steps into modules:
 
 `infragen/generators/add-ts/__tests__/index.ts`
 
 ```js
 describe("@infragen/generator-add-ts", () => {
-  it("should run `yarn add --dev typescript ts-loader source-map-loader`");
+  it("should run `yarn add --dev typescript`");
 
   it(
     "should run `yarn add --dev ts-node @types/node` if it's in the context of a Node App"
@@ -121,14 +101,6 @@ describe("@infragen/generator-add-ts", () => {
     //     start: "yarn ts-node ."
     //   }
     // };
-  });
-
-  it("should add the babel loader if we are using Babel", () => {
-    // {
-    //   scripts: {
-    //     presets: ["@babel/preset-typescript"];
-    //   }
-    // }
   });
 });
 ```
@@ -151,21 +123,7 @@ describe("@infragen/generator-add-jest", () => {
   // note we opt for a json file since writing to a JSON file programatically will be simpler than the default .js file
   it("should create a jest.config.json file", () => {
     // {
-    //   clearMocks: true,
-    //   coverageDirectory: "coverage",
     //   testEnvironment: "node",
-    // };
-  });
-
-  it(
-    "should run `yarn add --dev babel-jest @babel/preset-env` if we are using Babel"
-  );
-
-  it("should add transform to the jest.config.json file if we are using Babel", () => {
-    // {
-    //   transform: {
-    //     "^.+\\.jsx?$": "babel-jest",
-    //   }
     // };
   });
 
@@ -209,38 +167,19 @@ So our `create-github-project` should look something like this now:
  │   ├─> create-github-project
  │   │   ├─> __tests__
  │   │   │   └── index.ts
- │   │   ├── babel.config.json
  │   │   ├── jest.config.json
  │   │   ├── package.json
+ │   │   ├── tslint.yml
+ │   │   ├── tsconfig.json
  │   │   └── yarn.lock
-```
-
-`infragen/generators/create-github-project/babel.config.json`
-
-```json
-{
-  "presets": [
-    [
-      "@babel/preset-env",
-      {
-        "targets": {
-          "node": "current"
-        }
-      }
-    ]
-  ]
-}
 ```
 
 `infragen/generators/create-github-project/jest.config.json`
 
 ```json
 {
-  "clearMocks": true,
-  "coverageDirectory": "coverage",
   "testEnvironment": "node",
   "transform": {
-    "^.+\\.jsx?$": "babel-jest",
     "^.+\\.tsx?$": "ts-jest"
   }
 }
@@ -272,7 +211,7 @@ rules:
   "name": "@infragen/generator-create-github-project",
   "version": "1.0.0",
   "description": "",
-  "main": "jest.config.js",
+  "main": "index.js",
   "scripts": {
     "test": "jest --config jest.config.json",
     "test:watch": "jest --config jest.config.json --watch"
@@ -280,9 +219,7 @@ rules:
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@babel/preset-env": "^7.7.4",
     "@types/jest": "^24.0.23",
-    "babel-jest": "^24.9.0",
     "jest": "^24.9.0",
     "ts-jest": "^24.2.0",
     "typescript": "^3.7.2"
@@ -297,7 +234,7 @@ And our `lerna.json` file should look like this
 
 `infragen/lerna.json`
 
-```
+```json
 {
   "packages": [".", "generators/*"],
   "version": "0.0.0",
@@ -307,7 +244,7 @@ And our `lerna.json` file should look like this
 
 ## Ensuring Boilerplate Works
 
-Now let's ensure that our setup works! We can test whether our installation of Babel, TS, and Jest worked in one go.
+Now let's ensure that our setup works! We can test whether our installation of TS and Jest worked in one go.
 
 Add the following to the top of
 
@@ -323,6 +260,32 @@ describe("@infragen/generator-create-github-project", () => {
 
 Next run `yarn test` inside of `infragen/generator/create-github-project/` and you should get your first passing test!
 
+We also have to comment out all the tests without definitions because jest will yell at us.
+
+```typescript
+describe("@infragen/generator-create-github-project", () => {
+  it("should run a test", () => {
+    expect(true).toBe(true);
+  });
+
+  // it("should ask the user for the name of the project");
+
+  // it("should create a local directory with that name");
+
+  // it("should run `git init`");
+
+  // // @todo figure this out laters
+  // // it('should create a remote Github project with that name');
+  // it(
+  //   "should ask the user to create a remote Github project with that name and pass the url for the origin"
+  // );
+
+  // it("should link the origin of the local directory to the Github project");
+
+  // it("should add a README.md file");
+});
+```
+
 Now we are ready to do some actual coding. We have our work cut out for us. It's all written as tests in `infragen/generator/create-github-project/__tests__/index.ts`
 
-Your code should look something like [this] at the end of this section.
+Your code should look something like [this](https://github.com/hoverinc/infragen/pull/7/files) at the end of this section.

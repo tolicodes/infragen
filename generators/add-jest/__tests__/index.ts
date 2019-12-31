@@ -13,12 +13,16 @@ describe("@infragen/generator-add-jest", () => {
   // note we opt for a json file since writing to a JSON file programatically will be simpler than the default .js file
   it("should create a jest.config.json file", () => {
     // {
+<<<<<<< HEAD
     //   clearMocks: true,
     //   coverageDirectory: "coverage",
+=======
+>>>>>>> boilerplate
     //   testEnvironment: "node",
     // };
   });
 
+<<<<<<< HEAD
   it(
     "should run `yarn add --dev babel-jest @babel/preset-env` if we are using Babel"
   );
@@ -31,6 +35,8 @@ describe("@infragen/generator-add-jest", () => {
     // };
   });
 
+=======
+>>>>>>> boilerplate
   it("should run `yarn add --dev @types/jest ts-jest` if we are using TS");
 
   it("should add transform to the jest.config.json file if we are using TS", () => {
