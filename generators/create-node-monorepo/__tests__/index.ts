@@ -1,6 +1,8 @@
 describe("@infragen/generator-create-node-monorepo", () => {
   it("should run the create-github-project generator");
 
+  it("should run npm init");
+
   it(
     "setup package.json for the base project with the name provided in the create-github-project generator"
   );
