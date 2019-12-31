@@ -12,4 +12,12 @@ describe("@infragen/generator-add-ts", () => {
     //   }
     // };
   });
+
+  it("should create a basic tsconfig.json file", () => {
+    // {
+    //   "compilerOptions": {
+    //     "preserveSymlinks": true
+    //   }
+    // }
+  });
 });

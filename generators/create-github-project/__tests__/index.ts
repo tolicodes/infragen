@@ -1,6 +1,30 @@
+import testCLI from "@infragen/util-test-cli";
+import { ENTER } from "@infragen/util-send-inputs-to-cli";
+
 describe("@infragen/generator-create-github-project", () => {
-  it("should run a test", () => {
-    expect(true).toBe(true);
+  it("should ask the user for the name of the project", async () => {
+    const { code, error, output } = await testCLI({
+      bashCommand: `ts-node ../`,
+      inputs: [
+        // Answers "Name of the project"
+        "my-new-project",
+
+        // Continue
+        ENTER
+      ]
+    });
+
+    expect(error.mock.calls.length).toBe(0);
+
+    expect(code).toBe(0);
+
+    expect(output).toBeCalledWith(
+      expect.stringMatching(/What is the name of your project\?/)
+    );
+
+    expect(output).toBeCalledWith(
+      expect.stringMatching(/Your project is named "my-new-project"\?/)
+    );
   });
 
   // it("should ask the user for the name of the project");
