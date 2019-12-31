@@ -1,4 +1,4 @@
-## Applying the Principles to Infragen
+## Applying the Principles to InfraGen
 
 Starting from scratch I decided to apply those principles to InfraGen.
 

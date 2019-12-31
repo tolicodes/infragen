@@ -1,10 +1,13 @@
-describe("@infragen/generator-create-react-app", () => {
-  it("should create a Git repo and link it to Github");
-  it("should npm init the repo making a package.json");
-  it("should add a README");
+describe("@infragen/generator-create-node-module", () => {
+  it(
+    "should ask for the name of the package (or take it from `create-github-project`"
+  );
+
+  it("should create a directory with that name (or use current directory)");
+
+  it("should create a package.json with that name");
+
   it("should install and configure TS");
-  it("should install and configure Babel");
+
   it("should install and configure Jest");
-  it("should install and configure Webpack");
-  it("should ensure that TS, Babel, Jest, and Webpack play well together");
 });
