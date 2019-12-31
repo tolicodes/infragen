@@ -27,7 +27,7 @@ export default () => {
 
 Sometimes you start writing code and realize...there's not a simple way to test it.
 
-We know we will have a CLI which would run inquirer, but upon extensive searching I could find a utility that sufficiently tests navigating the output that navigates it.
+We know we will have a CLI which would run inquirer, but upon extensive searching I couldn't find a utility that sufficiently tests sending inputs and checking that the outputs are correct.
 
 I decided to invest the time in writing a robust CLI tester, since everything we are going to be creating from this point forward will need a CLI.
 
@@ -40,7 +40,7 @@ yarn add --dev @infragen/util-test-cli
 yarn add --dev @infragen/util-send-inputs-to-cli
 ```
 
-If you're interested in how it works, check out [this PR] for all the source code, docs, etc
+If you're interested in how it works, check out [this PR](https://github.com/hoverinc/infragen/pull/7) for all the source code, docs, etc
 
 ### Writing Our Tests
 

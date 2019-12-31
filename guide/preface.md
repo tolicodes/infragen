@@ -9,6 +9,7 @@ And before we start, I welcome all comments, questions, thoughts, and improvemen
 > After this realization, I became committed to building InfraGen the right way, and documenting the process, and documenting some of the Programming Principles I identified.
 >
 > However, much more importantly a lot of general life philosophies that I learned and tried to practice over the last few years, started really falling into place, like puzzle pieces:
+>
 > The preface got so long that, in the spirit of modularity (one of the technical principles I practice), I separated it into a separate repo that I called [Principles](https://github.com/tolicodes/principles) which is published to [principles.tolicodes.com](https://principles.tolicodes.com/docs/toc). It's quite long so depending on your interests and available free time I would recommend reading:
 
 ## Show Me the Code!
