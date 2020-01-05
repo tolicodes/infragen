@@ -152,6 +152,8 @@ We need to install some packages.
 
 We need `@types/jest` and `@types/node` for proper TS compilation (these are just `dev` dependencies.
 
+We also need to add `inquirer` as a regular dependency for our generator
+
 `infragen/`
 
 ```bash
@@ -615,7 +617,7 @@ it("should create a local directory with that name", async () => {
 });
 ```
 
-As expected, our test stats that `/tmp/my-new-project` does not exist.
+As expected, our test states that `/tmp/my-new-project` does not exist.
 
 `infragen/generators/create-github-project yarn test:watch`
 
@@ -643,3 +645,399 @@ irectory with that name
       at fulfilled (__tests__/index.ts:5:58)
 
 ```
+
+### Passing Parameters to CLI
+
+So we know we have to create a directory inside another CWD. And we should be able to pass that CWD either via command line or if we include it as part of another script just as a parameter. So we will add:
+
+`infragen/generators/create-github-project/index.ts`
+
+```typescript
+import { mkdirSync } from "fs";
+
+import { prompt } from "inquirer";
+
+interface IGeneratorCreateGithubProject {
+  // The current working directory where the generator runs
+  cwd: string;
+}
+
+export default async ({ cwd }: IGeneratorCreateGithubProject) => {
+  const { projectName } = await prompt([
+    {
+      message: "What is the name of your project?",
+      name: "projectName",
+      type: "input"
+    }
+  ]);
+
+  console.log(`Your project is named "${projectName}"`);
+
+  // mkdirSync(`${cwd}/${projectName}`);
+};
+```
+
+The test errors:
+
+`infragen/generators/create-github-project yarn test:watch`
+
+```
+  console.error ../../utils/test-cli/index.ts:115
+    /Users/toli/ToliCodes Dropbox/Anatoliy Zaslavskiy/Sites/infragen/generators/create-github-project/node_modules/ts-node/src/index.ts:293
+        return new TSError(diagnosticText, diagnosticCodes)
+               ^
+    TSError: ⨯ Unable to compile TypeScript:
+    cli.ts(3,1): error TS2554: Expected 1 arguments, but got 0.
+
+        at createTSError (/Users/toli/ToliCodes Dropbox/Anatoliy Zaslavskiy/Sites/infragen/generators/create-github-project/node_modules/ts-node/src/index.ts:293:12)
+        at reportTSError (/Users/toli/ToliCodes Dropbox/Anatoliy Zaslavskiy/Sites/infragen/generators/create-github-project/node_modules/ts-node/src/index.ts:297:19)
+        at getOutput (/Users/toli/ToliCodes Dropbox/Anatoliy Zaslavskiy/Sites/infragen/generators/create-github-project/node_modules/ts-node/src/index.ts:399:34)
+        at Object.compile (/Users/toli/ToliCodes Dropbox/Anatoliy Zaslavskiy/Sites/infragen/generators/create-github-project/node_modules/ts-node/src/index.ts:457:32)
+        at Module.m._compile (/Users/toli/ToliCodes Dropbox/Anatoliy Zaslavskiy/Sites/infragen/generators/create-github-project/node_modules/ts-node/src/index.ts:536:43)
+        at Module._extensions..js (internal/modules/cjs/loader.js:995:10)
+        at Object.require.extensions.<computed> [as .ts] (/Users/toli/ToliCodes Dropbox/Anatoliy Zaslavskiy/Sites/infragen/generators/create-github-project/node_modules/ts-node/src/index.ts:539:12)
+        at Module.load (internal/modules/cjs/loader.js:815:32)
+        at Function.Module._load (internal/modules/cjs/loader.js:727:14)
+        at Function.Module.runMain (internal/modules/cjs/loader.js:1047:10)
+
+```
+
+which is referring to the first parameter of `index.ts` not being passed in `cli.ts`.
+
+So to fix that we need a way to pass params via CLI. For this we should install a tool called `commander.js` which parses arguments much better than just reading `process.argv`.
+
+So to add it we run:
+
+`infragen/`
+
+```bash
+lerna add --scope=@infragen/generator-create-github-project commander
+```
+
+And then we fill out our `cli.ts` to accept `cwd` as an argument
+
+`infragen/generators/create-github-project/cli.ts`
+
+```typescript
+import generator from ".";
+import * as commander from "commander";
+
+commander.option("-c, --cwd", "current working directory");
+
+commander.parse(process.argv);
+
+generator({
+  cwd: commander.cwd
+});
+```
+
+### Checking for Required Parameters, Running only Current Test in Jest
+
+The test errors:
+
+`infragen/generators/create-github-project yarn test:watch`
+
+```
+console.error ../../utils/test-cli/index.ts:115
+    (node:37982) UnhandledPromiseRejectionWarning: Error: ENOENT: no such file or directory, mkdir 'undefined/my-new-project'
+        at Object.mkdirSync (fs.js:823:3)
+        at /Users/toli/ToliCodes Dropbox/Anatoliy Zaslavskiy/Sites/infragen/generators/create-github-project/index.ts:20:3
+        at step (/Users/toli/ToliCodes Dropbox/Anatoliy Zaslavskiy/Sites/infragen/generators/create-github-project/index.ts:33:23)
+        at Object.next (/Users/toli/ToliCodes Dropbox/Anatoliy Zaslavskiy/Sites/infragen/generators/create-github-project/index.ts:14:53)
+        at fulfilled (/Users/toli/ToliCodes Dropbox/Anatoliy Zaslavskiy/Sites/infragen/generators/create-github-project/index.ts:5:58)
+        at processTicksAndRejections (internal/process/task_queues.js:93:5)
+```
+
+This is expected, because we didn't pass a `cwd` argument. But it's not the best error. Let's specifically test that it checks for `cwd` and errors if it doesn't.
+
+So we actually have to create a new test. Note how I made it a `it.only` block instead of `it`. We know all of our other tests will fail, so let's just get this test passing and then turn it back into an `it`
+
+`infragen/generators/add-ts/__tests__/index.ts`
+
+```typescript
+it.only("should throw an error if `cwd` is not passed", async () => {
+  const { code, error, output } = await testCLI({
+    bashCommand: `yarn start`,
+    debug: true,
+    inputs: [
+      // Answers "Name of the project"
+      "my-new-project",
+      // Continue
+      ENTER
+    ]
+  });
+
+  expect(error.mock.calls.length).toBe(1);
+  expect(code).toBe(1);
+  expect(error).toBeCalledWith(
+    expect.stringMatching(/`cwd` is required. Pass it using the --cwd flag/)
+  );
+});
+```
+
+### Throwing Errors and Catching then Using CLI Tester
+
+Of course that also fails with a few more errors, complaining about:
+
+`infragen/generators/add-ts/__tests__/index.ts`
+
+```typescript
+expect(error.mock.calls.length).toBe(1);
+expect(code).toBe(1);
+```
+
+We didn't add any `throw`s so the exit code is `1`. And for some reason we are getting 2 error logs.
+
+So let's put it the code we expect.
+
+`infragen/generators/create-github-project/index.ts`
+
+```typescript
+export default async ({ cwd }: IGeneratorCreateGithubProject) => {
+  if (!cwd) {
+    throw new Error("`cwd` is required. Pass it using the --cwd flag");
+  }
+```
+
+But the test still fails. The error happens inside the executed script and outputs to `error` with an exit code.
+
+`infragen/generators/add-ts/__tests__/index.ts`
+
+```typescript
+it.only("should throw an error if `cwd` is not passed", async () => {
+  const { code, error } = await testCLI({
+    bashCommand: `yarn start`,
+    inputs: [
+      // Answers "Name of the project"
+      "my-new-project",
+      // Continue
+      ENTER
+    ]
+  });
+
+  // errors listed below and for some reason a blank error
+  // @todo look into this
+  expect(error.mock.calls.length).toBe(3);
+  expect(code).toBe(1);
+
+  expect(error).toBeCalledWith(
+    expect.stringMatching(/`cwd` is required. Pass it using the --cwd flag/)
+  );
+
+  // the script aborts
+  expect(error).toBeCalledWith(
+    expect.stringMatching(/Command failed with exit code 1./)
+  );
+});
+```
+
+### Get node to output exit code 1
+
+We still get an error
+
+`infragen/generators/create-github-project yarn test:watch`
+
+```
+ ● @infragen/generator-create-github-project › should throw an error if `cwd` is not passed
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 1
+    Received: 0
+
+      33 |     // @todo look into this
+      34 |     expect(error.mock.calls.length).toBe(3);
+    > 35 |     expect(code).toBe(1);
+         |                  ^
+      36 |
+      37 |     expect(error).toBeCalledWith(
+      38 |       expect.stringMatching(/`cwd` is required. Pass it using the --cwd flag/)
+
+      at __tests__/index.ts:35:18
+      at step (__tests__/index.ts:33:23)
+      at Object.next (__tests__/index.ts:14:53)
+      at fulfilled (__tests__/index.ts:5:58)
+```
+
+We also need to update or `cli.ts` to catch error codes. What we are doing here is running the script as usual (in an IIFE so that we can use `await`. We are catching the error thrown in our script, and then `console.error`ing it, while exiting with the correct code.
+
+This way other files can include our `index.ts` without the whole app crashing, but we can still use exit codes when running in `bash`.
+
+`infragen/generators/create-github-project/cli.ts`
+
+```typescript
+import generator from ".";
+import * as commander from "commander";
+
+commander.option("-c, --cwd <cwd>", "current working directory");
+
+commander.parse(process.argv);
+
+(async () => {
+  try {
+    await generator({
+      cwd: commander.cwd
+    });
+  } catch (e) {
+    console.error(e);
+    process.exit(1);
+  }
+})();
+```
+
+Now our test passes. Let's uncomment the `only` and move on.
+
+### Passing `cwd` option to our existing tests
+
+It's good practice to create a completely new folder when doing file manipulations, and then destroy it after the test is done.
+
+So let's add a `beforeEach` and `afterEach` block that creates a new `cwd` and destroys it after the test. We are going to use `uuid` package to create a random directory, and `ensureDir` to create that directory (it recursively creates any directory we pass in case for some reason there is no `/tmp` dir). And finally we will use `unlinkSync` from `fs` to destroy that dir.
+
+`infragen/generators/add-ts/__tests__/index.ts`
+
+```typescript
+import { existsSync , unlinkSync} from "fs";
+import { ensureDir } from "fs-extra";
+import { v4 as uuidv4 } from "uuid";
+
+const TMP_DIR = '/tmp/';
+
+describe("@infragen/generator-create-github-project", () => {
+  let cwd;
+  beforeEach(async () => {
+    cwd = `${TMP_DIR}${uuidv4()}`;
+    await ensureDir(cwd);
+  });
+
+  afterEach(() => {
+    unlinkSync(cwd);
+  });
+```
+
+And now we have to add the `uuid` and `fs-extra` packages as dev deps
+
+```bash
+lerna add --dev --scope=@infragen/generator-create-github-project uuid
+lerna add --dev --scope=@infragen/generator-create-github-project fs-extra
+```
+
+And now we pass that `cwd` as a parameter to our first non-error-throwing test
+
+`infragen/generators/add-ts/__tests__/index.ts`
+
+```typescript
+it.only("should ask the user for the name of the project", async () => {
+  const { code, error, output } = await testCLI({
+    bashCommand: `yarn start --cwd ${cwd}`,
+    debug: true,
+    inputs: [
+      // Answers "Name of the project"
+      "my-new-project",
+      // Continue
+      ENTER
+    ]
+  });
+
+  expect(error.mock.calls.length).toBe(0);
+  expect(code).toBe(0);
+  expect(output).toBeCalledWith(
+    expect.stringMatching(/What is the name of your project\?/)
+  );
+  expect(output).toBeCalledWith(
+    expect.stringMatching(/Your project is named "my-new-project"/)
+  );
+});
+```
+
+### Proper Commander Usage (Error: Says true as part of the cwd)
+
+We get another error:
+
+`infragen/generators/create-github-project yarn test:watch`
+
+```
+ console.error ../../utils/test-cli/index.ts:115
+    (node:40089) UnhandledPromiseRejectionWarning: Error: ENOENT: no such file or directory, mkdir 'true/my-new-project'
+        at Object.mkdirSync (fs.js:823:3)
+        at /Users/toli/ToliCodes Dropbox/Anatoliy Zaslavskiy/Sites/infragen/generators/create-github-project/index.ts:24:3
+        at step (/Users/toli/ToliCodes Dropbox/Anatoliy Zaslavskiy/Sites/infragen/generators/create-github-project/index.ts:33:23)
+        at Object.next (/Users/toli/ToliCodes Dropbox/Anatoliy Zaslavskiy/Sites/infragen/generators/create-github-project/index.ts:14:53)
+        at fulfilled (/Users/toli/ToliCodes Dropbox/Anatoliy Zaslavskiy/Sites/infragen/generators/create-github-project/index.ts:5:58)
+        at processTicksAndRejections (internal/process/task_queues.js:93:5)
+```
+
+So somehow our `cwd` was read as `true`. It turns out we are using `commander` incorrectly. Specifying and option without additional parameters makes it treat the option as a boolean.
+
+We can fix this by adding `<cwd>` to the option
+
+`infragen/generators/create-github-project/cli.ts`
+
+```typescript
+commander.option("-c, --cwd <cwd>", "current working directory");
+```
+
+### Unlinking/Removing non Empty Dirs using fs-extra remove
+
+Now we get an error saying:
+
+`infragen/generators/create-github-project yarn test:watch`
+
+```
+● @infragen/generator-create-github-project › should ask the user for
+ the name of the project
+
+    EPERM: operation not permitted, unlink '/tmp/3dab5c0d-8ab8-43b0-be0
+4-45905563dd64'
+
+      17 |
+      18 |   afterEach(() => {
+    > 19 |     unlinkSync(cwd);
+         |     ^
+      20 |   });
+      21 |
+      22 |   it("should throw an error if `cwd` is not passed", async () => {
+
+      at Object.<anonymous> (__tests__/index.ts:19:5)
+```
+
+We actually are using the wrong command to remove the directory, because it's not empty. If we use `fs-extra`'s `remove` it will work.
+
+`infragen/generators/add-ts/__tests__/index.ts`
+
+```typescript
+import { ensureDir, remove } from "fs-extra";
+
+afterEach(async () => {
+  await remove(cwd);
+});
+```
+
+And it passes again.
+
+If we comment in our "should create a local directory with that name" test with the cwd passed in the CLI it should work.
+
+`infragen/generators/add-ts/__tests__/index.ts`
+
+```typescript
+it.only("should create a local directory with that name", async () => {
+  const { code, error, output } = await testCLI({
+    bashCommand: `yarn start --cwd ${cwd}`,
+    debug: true,
+    inputs: [
+      // Answers "Name of the project"
+      "my-new-project",
+      // Continue
+      ENTER
+    ]
+  });
+
+  expect(error.mock.calls.length).toBe(0);
+  expect(code).toBe(0);
+
+  expect(existsSync(`${cwd}/my-new-project`)).toBe(true);
+});
+```
+
+And it does.
+
+So let's commit our tests and move on
