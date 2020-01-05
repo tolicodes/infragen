@@ -731,6 +731,8 @@ generator({
 });
 ```
 
+## it("should throw an error if `cwd` is not passed")
+
 ### Checking for Required Parameters, Running only Current Test in Jest
 
 The test errors:
@@ -1040,4 +1042,4 @@ it.only("should create a local directory with that name", async () => {
 
 And it does.
 
-So let's commit our tests and move on
+So let's clean up (remove `only` and `debug`) and commit our tests and move on!

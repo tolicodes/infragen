@@ -68,7 +68,6 @@ describe("@infragen/generator-create-github-project", () => {
   it("should create a local directory with that name", async () => {
     const { code, error, output } = await testCLI({
       bashCommand: `yarn start --cwd ${cwd}`,
-      debug: true,
       inputs: [
         // Answers "Name of the project"
         "my-new-project",
