@@ -81,4 +81,12 @@ export default async ({
     bashCommand: `touch README.md`,
     ...execBashCommandOpts
   });
+
+  // Pushes it up
+  outputCB(`Pushing to origin master`);
+
+  await execBashCommand({
+    bashCommand: `git add . && git commit -m "README" && git push -u -f origin master`,
+    ...execBashCommandOpts
+  });
 };

@@ -158,7 +158,19 @@ describe("@infragen/generator-create-github-project", () => {
     expect(existsSync(`${projectDirectory}/README.md`)).toBe(true);
   });
 
-  // it("should push to origin master", () => {
-  //   // git push -u origin master
-  // });
+  it.only("should push to origin master", async () => {
+    const { code, error, output } = await testCLI({
+      ...TEST_CLI_PARAMS
+    });
+    expect(error.mock.calls.length).toBe(0);
+    expect(code).toBe(0);
+
+    expect(output).toBeCalledWith(
+      expect.stringContaining(
+        "Branch 'master' set up to track remote branch 'master' from 'origin'"
+      )
+    );
+
+    //
+  });
 });
