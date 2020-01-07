@@ -41,16 +41,20 @@ export default async ({
 
   const projectDir = `${cwd}/${projectName}`;
 
+  const execBashCommandOpts = {
+    cwd: projectDir,
+    debug,
+    outputCB,
+    errorCB
+  };
+
   // Creating Directory with project name
   mkdirSync(projectDir);
 
   // Executing "git init"
   await execBashCommand({
     bashCommand: "git init",
-    cwd: projectDir,
-    debug,
-    outputCB,
-    errorCB
+    ...execBashCommandOpts
   });
 
   // Ask user for origin
@@ -67,9 +71,14 @@ export default async ({
 
   await execBashCommand({
     bashCommand: `git remote add origin ${gitOrigin}`,
-    cwd: projectDir,
-    debug,
-    outputCB,
-    errorCB
+    ...execBashCommandOpts
+  });
+
+  // Creates readme file
+  outputCB(`Creating README.md file`);
+
+  await execBashCommand({
+    bashCommand: `touch README.md`,
+    ...execBashCommandOpts
   });
 };

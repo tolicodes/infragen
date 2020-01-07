@@ -8,7 +8,7 @@ import { ENTER } from "@infragen/util-send-inputs-to-cli";
 
 const TMP_DIR = "/tmp/";
 
-const CLI_TIMEOUT = 180000
+const CLI_TIMEOUT = 180000;
 const DEFAULT_TIMEOUT = 5000;
 const PROJECT_ROOT = `${__dirname}/..`;
 
@@ -149,7 +149,14 @@ describe("@infragen/generator-create-github-project", () => {
       expect.stringContaining("git@github.com:tolicodes/test.git")
     );
   });
-  // it("should add a README.md file");
+
+  it("should add a README.md file", async () => {
+    const { code, error } = await testCLI(TEST_CLI_PARAMS);
+    expect(error.mock.calls.length).toBe(0);
+    expect(code).toBe(0);
+
+    expect(existsSync(`${projectDirectory}/README.md`)).toBe(true);
+  });
 
   // it("should push to origin master", () => {
   //   // git push -u origin master

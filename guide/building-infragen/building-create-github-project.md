@@ -1605,7 +1605,7 @@ import { v4 as uuidv4 } from "uuid";
 import execBashCommand, { IExecBashCommandReturn } from "../";
 import { SPACE, DOWN, ENTER } from "@infragen/util-send-inputs-to-cli";
 
-const CLI_TIMEOUT = 180000
+const CLI_TIMEOUT = 180000;
 const DEFAULT_TIMEOUT = 5000;
 const TMP_DIR = "/tmp/";
 
@@ -2088,4 +2088,36 @@ Now we can watch all the tests by running at the root
 
 ```bash
 yarn test:watch
+```
+
+## @infragen/generator-create-github-project should add a README.md file
+
+### Writing the Test
+
+The test is pretty straightforward:
+
+`infragen/generators/create-github-project/__tests__/index.ts`
+
+```typescript
+it("should add a README.md file", async () => {
+  const { code, error } = await testCLI(TEST_CLI_PARAMS);
+  expect(error.mock.calls.length).toBe(0);
+  expect(code).toBe(0);
+
+  expect(existsSync(`${projectDirectory}/README.md`)).toBe(true);
+});
+```
+
+### Implementation
+
+`infragen/generators/create-github-project/index.ts`
+
+```typescript
+// Creates readme file
+outputCB(`Creating README.md file`);
+
+await execBashCommand({
+  bashCommand: `touch README.md`,
+  ...execBashCommandOpts
+});
 ```
