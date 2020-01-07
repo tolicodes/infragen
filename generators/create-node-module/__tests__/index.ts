@@ -1,13 +1,25 @@
 describe("@infragen/generator-create-node-module", () => {
-  it(
+  it.todo(
     "should ask for the name of the package (or take it from `create-github-project`"
   );
 
-  it("should create a directory with that name (or use current directory)");
+  it.todo(
+    "should create a directory with that name (or use current directory)"
+  );
 
-  it("should create a package.json with that name");
+  it.todo("should create a package.json with that name");
+  // {
+  //   "name": "<name>,
+  //   "version": "1.0.0",
+  //   "description": "",
+  //   "main": "index.js",
+  //   "author": "",
+  //   "license": "ISC",
+  // }
 
-  it("should install and configure TS");
+  it.todo("should run add-ts generator");
 
-  it("should install and configure Jest");
+  it.todo("should run add-jest generator");
+
+  it.todo("cds into that directory");
 });

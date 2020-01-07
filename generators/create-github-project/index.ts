@@ -1,16 +1,34 @@
 import { mkdirSync } from "fs";
 
 import { prompt } from "inquirer";
+
+import execBashCommand, {
+  OnDataCallback
+} from "@infragen/util-exec-bash-command";
+
 interface IGeneratorCreateGithubProject {
   // The current working directory where the generator runs
   cwd: string;
+
+  // Print debug output (passed to `execBashCommand`)
+  debug?: boolean;
+
+  outputCB?: OnDataCallback;
+
+  errorCB?: OnDataCallback;
 }
 
-export default async ({ cwd }: IGeneratorCreateGithubProject) => {
+export default async ({
+  cwd,
+  debug,
+  outputCB = console.log,
+  errorCB = console.error
+}: IGeneratorCreateGithubProject) => {
   if (!cwd) {
     throw new Error("`cwd` is required. Pass it using the --cwd flag");
   }
 
+  // Asking for name of project
   const { projectName } = await prompt([
     {
       message: "What is the name of your project?",
@@ -19,7 +37,39 @@ export default async ({ cwd }: IGeneratorCreateGithubProject) => {
     }
   ]);
 
-  console.log(`Your project is named "${projectName}"`);
+  outputCB(`Your project is named "${projectName}"`);
 
-  mkdirSync(`${cwd}/${projectName}`);
+  const projectDir = `${cwd}/${projectName}`;
+
+  // Creating Directory with project name
+  mkdirSync(projectDir);
+
+  // Executing "git init"
+  await execBashCommand({
+    bashCommand: "git init",
+    cwd: projectDir,
+    debug,
+    outputCB,
+    errorCB
+  });
+
+  // Ask user for origin
+  const { gitOrigin } = await prompt([
+    {
+      message: "What is your git origin (from github)?",
+      name: "gitOrigin",
+      type: "input"
+    }
+  ]);
+
+  // link git origin to the user input
+  outputCB(`Linking to git origin "${gitOrigin}"`);
+
+  await execBashCommand({
+    bashCommand: `git remote add origin ${gitOrigin}`,
+    cwd: projectDir,
+    debug,
+    outputCB,
+    errorCB
+  });
 };

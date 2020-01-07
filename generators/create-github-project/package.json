@@ -11,6 +11,7 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@infragen/util-exec-bash-command": "^1.0.0",
     "@infragen/util-send-inputs-to-cli": "^1.0.0",
     "@infragen/util-test-cli": "^1.0.0",
     "@types/jest": "^24.0.23",
@@ -23,6 +24,7 @@
     "uuid": "^3.3.3"
   },
   "dependencies": {
+    "@infragen/util-exec-bash-command": "^1.0.0",
     "commander": "^4.0.1",
     "ts-node": "^8.5.4"
   }

@@ -1,3 +1,5 @@
+import { rejects } from "assert";
+
 // anything less and inquirer doesn't catch it
 export const DEFAULT_TIMEOUT_BETWEEN_INPUTS = 400;
 
@@ -32,9 +34,9 @@ export default async ({
   // go through each input, waiting for the last timeout to
   // resolve
   // write the input to stdin
-  await inputs.reduce(
+  return inputs.reduce(
     (previousPromise, input) =>
-      new Promise(async resolve => {
+      new Promise(async (resolve, reject) => {
         await previousPromise;
         let inputString;
 
@@ -46,7 +48,13 @@ export default async ({
         }
 
         setTimeout(() => {
-          stdin.write(inputString);
+          try {
+            stdin.write(inputString);
+          } catch (e) {
+            throw new Error(
+              `Unable to send input "${inputString}" to the cli. Please check to make sure your script didn't exit early.`
+            );
+          }
           resolve();
         }, timeoutBetweenInputs);
       }),

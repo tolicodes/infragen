@@ -2,6 +2,8 @@ import { writeFileSync, unlinkSync } from "fs";
 import * as child_process from "child_process";
 import { v4 as uuidv4 } from "uuid";
 
+import execBashCommand from "@infragen/util-exec-bash-command";
+
 import sendInputs, {
   DEFAULT_TIMEOUT_BETWEEN_INPUTS,
   CLIInputs
@@ -84,56 +86,44 @@ export default async ({
   debug = false,
   extension = "js"
 }: ITestCLIOpts = {}): Promise<ITestCLIReturn> =>
-  new Promise(async resolve => {
-    const output = jest.fn();
-    const error = jest.fn();
+  new Promise(async (resolve, reject) => {
+    const outputCB = jest.fn();
+    const errorCB = jest.fn();
 
-    let proc: Process;
-
-    const tmpFile: string = `${TMP_DIR}/${uuidv4()}.${extension}`;
+    let tmpFile;
 
     if (nodeScript) {
+      tmpFile = `${TMP_DIR}/${uuidv4()}.${extension}`;
       writeFileSync(tmpFile, nodeScript);
-      proc = child_process.exec(`${nodeCommand} "${tmpFile}"`, {
-        cwd
-      });
-    } else {
-      proc = child_process.exec(bashCommand, {
-        cwd
-      });
+
+      bashCommand = `echo "heeel" && pwd && ${nodeCommand} "${tmpFile}"`;
     }
 
-    proc.stdout.on("data", data => {
-      if (debug) {
-        console.log(data);
-      }
-      output(data);
-    });
-
-    proc.stderr.on("data", data => {
-      if (debug) {
-        console.error(data);
-      }
-      error(data);
-    });
-
-    if (inputs) {
-      await sendInputs({
+    try {
+      const { code } = await execBashCommand({
+        bashCommand,
+        cwd,
+        outputCB,
+        errorCB,
+        debug,
         inputs,
-        stdin: proc.stdin,
         timeoutBetweenInputs
       });
-    }
-
-    proc.on("exit", code => {
-      if (nodeScript && !debug) {
-        unlinkSync(tmpFile);
-      }
 
       resolve({
         code,
-        output,
-        error
+        output: outputCB,
+        error: errorCB
       });
-    });
+    } catch (e) {
+      reject({
+        ...e,
+        error: errorCB,
+        output: outputCB
+      });
+    } finally {
+      if (nodeScript && !debug) {
+        unlinkSync(tmpFile);
+      }
+    }
   });
