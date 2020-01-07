@@ -2110,6 +2110,7 @@ it("should add a README.md file", async () => {
 
 ### Implementation
 
+And so is the implementation
 `infragen/generators/create-github-project/index.ts`
 
 ```typescript
@@ -2121,3 +2122,7 @@ await execBashCommand({
   ...execBashCommandOpts
 });
 ```
+
+## @infragen/generator-create-github-project - should push to origin master
+
+### Writing the Test
