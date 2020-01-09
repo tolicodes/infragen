@@ -21,7 +21,7 @@ interface ITestCLIReturn {
 }
 
 // These tests take a while to run (vs usual 5s)
-const CLI_TIMEOUT = 180000
+const CLI_TIMEOUT = 180000;
 const DEFAULT_TIMEOUT = 5000;
 const PROJECT_ROOT = `${__dirname}/..`;
 
@@ -50,18 +50,20 @@ const testSendInputToCLI = async ({
       error(data);
     });
 
-    await sendInputsToCLI({
+    const promise = sendInputsToCLI({
       inputs,
       stdin: proc.stdin,
       timeoutBetweenInputs
     });
 
-    proc.on("exit", (code, sig) => {
-      debug && console.log("CODE", code, sig);
-      resolve({
-        code,
-        output,
-        error
+    proc.on("exit", async (code, sig) => {
+      promise.finally(() => {
+        debug && console.log("CODE", code, sig);
+        resolve({
+          code,
+          output,
+          error
+        });
       });
     });
   });
@@ -75,7 +77,7 @@ describe("@infragen/util-send-inputs-to-cli", () => {
     jest.setTimeout(DEFAULT_TIMEOUT);
   });
 
-  it.only("should send input to stdin", async () => {
+  it("should send input to stdin", async () => {
     const { output, error, code } = await testSendInputToCLI({
       bashCommand: "ts-node ./mockCLIs/standard.ts",
       inputs: [
@@ -245,7 +247,7 @@ describe("@infragen/util-send-inputs-to-cli", () => {
   });
 
   // @todo figure out why this isn't working later
-  // it.only("should stop sending input if the write stream is closed", async () => {
+  // it.only("should reject the promise if the write stream is closed", async () => {
   //   try {
   //     await testSendInputToCLI({
   //       bashCommand: `ts-node ./mockCLIs/errorEarly.ts`,
@@ -274,19 +276,17 @@ describe("@infragen/util-send-inputs-to-cli", () => {
   //       debug: true
   //     });
   //   } catch (e) {
-  //     console.log("catch start");
-  //     expect(e).not.toBeCalledWith(
+  //     expect(e.error).not.toBeCalledWith(
   //       expect.stringContaining(
   //         "Cannot call write after a stream was destroyedError"
   //       )
   //     );
 
-  //     expect(e).toBeCalledWith(
+  //     expect(e.error).toBeCalledWith(
   //       expect.stringContaining(
   //         'Unable to send input "Anatoliy Zaslavskiy" to the cli. Please check to make sure your script didn\'t exit early.'
   //       )
   //     );
-  //     console.log("caught error");
   //   }
   // });
 });

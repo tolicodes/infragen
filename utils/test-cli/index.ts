@@ -1,42 +1,28 @@
 import { writeFileSync, unlinkSync } from "fs";
-import * as child_process from "child_process";
 import { v4 as uuidv4 } from "uuid";
 
-import execBashCommand from "@infragen/util-exec-bash-command";
+import execBashCommand, {
+  IExecBashCommandReturn
+} from "@infragen/util-exec-bash-command";
 
-import sendInputs, {
+import {
   DEFAULT_TIMEOUT_BETWEEN_INPUTS,
   CLIInputs
 } from "@infragen/util-send-inputs-to-cli";
-
-type Process = child_process.ChildProcess | NodeJS.Process;
-
 // if we don't pass a cwd, we will create the temporary node file in the tmp directory
 const TMP_DIR = "/tmp/";
 
-export interface ITestCLIReturn {
-  // Jest mock function which will fire every time there is a stdout.on('data')
-  output: jest.Mock;
-
-  // Jest mock function which will fire every time there is a stderr.on('data')
-  error: jest.Mock;
-
+export type ITestCLIReturn = {
   // Exit code of the process
   code: number;
-}
+  error: jest.Mock;
+  output: jest.Mock;
+};
 
 export interface ITestCLIOpts {
   // used if you need to test a CLI command/npm package
   // ex: `run-my-tool --someoption`
   bashCommand?: string;
-
-  // this is a stringified node script to run as a child process
-  // ex:
-  // `
-  // import myCLI from '../';
-  // myCLI(someOpts: true);
-  // `
-  nodeScript?: string;
 
   // this is a list of inputs that need to be sent to cli
   // if a string is passed then it will use the default
@@ -55,10 +41,21 @@ export interface ITestCLIOpts {
   //
   inputs?: CLIInputs;
 
+  // this is a stringified node script to run as a child process
+  // ex:
+  // `
+  // import myCLI from '../';
+  // myCLI(someOpts: true);
+  // `
+  nodeScript?: string;
+
   // if using nodeScript, this is the command used to run the script
   // by default it's node (will run `node tmpFile.js`)
   // ex: 'tsnode'
   nodeCommand?: string;
+
+  // file extension (ex: change to ts if using ts-node)
+  extension?: string;
 
   // time to wait in between sending inputs
   // if one of your commands takes longer than the default
@@ -71,59 +68,47 @@ export interface ITestCLIOpts {
   // Should we print out all the calls to the output and error mocks
   // otherwise use
   debug?: boolean;
-
-  // file extension (ex: change to ts if using ts-node)
-  extension?: string;
 }
 
-export default async ({
+export default ({
   bashCommand,
-  nodeScript,
   inputs,
+
+  nodeScript,
   nodeCommand = "node",
+  extension = "js",
+
   timeoutBetweenInputs = DEFAULT_TIMEOUT_BETWEEN_INPUTS,
   cwd,
-  debug = false,
-  extension = "js"
-}: ITestCLIOpts = {}): Promise<ITestCLIReturn> =>
-  new Promise(async (resolve, reject) => {
-    const outputCB = jest.fn();
-    const errorCB = jest.fn();
+  debug = false
+}: ITestCLIOpts = {}): Promise<ITestCLIReturn> => {
+  // we handle debugging here by watching the functions we pass through
+  const outputCB = jest.fn().mockImplementation(data => {
+    debug && console.log(data);
+  });
+  const errorCB = jest.fn().mockImplementation(data => {
+    debug && console.error(data);
+  });
 
-    let tmpFile;
+  let tmpFile;
 
-    if (nodeScript) {
-      tmpFile = `${TMP_DIR}/${uuidv4()}.${extension}`;
-      writeFileSync(tmpFile, nodeScript);
+  if (nodeScript) {
+    tmpFile = `${TMP_DIR}/${uuidv4()}.${extension}`;
+    writeFileSync(tmpFile, nodeScript);
 
-      bashCommand = `echo "heeel" && pwd && ${nodeCommand} "${tmpFile}"`;
-    }
+    bashCommand = `${nodeCommand} "${tmpFile}"`;
+  }
 
-    try {
-      const { code } = await execBashCommand({
-        bashCommand,
-        cwd,
-        outputCB,
-        errorCB,
-        debug,
-        inputs,
-        timeoutBetweenInputs
-      });
-
-      resolve({
-        code,
-        output: outputCB,
-        error: errorCB
-      });
-    } catch (e) {
-      reject({
-        ...e,
-        error: errorCB,
-        output: outputCB
-      });
-    } finally {
-      if (nodeScript && !debug) {
-        unlinkSync(tmpFile);
-      }
+  return execBashCommand({
+    bashCommand,
+    cwd,
+    outputCB,
+    errorCB,
+    inputs,
+    timeoutBetweenInputs
+  }).finally(() => {
+    if (nodeScript && !debug) {
+      unlinkSync(tmpFile);
     }
   });
+};

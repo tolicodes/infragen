@@ -5,17 +5,14 @@ import sendInputs, {
   CLIInputs
 } from "@infragen/util-send-inputs-to-cli";
 
-export type OnDataCallback = (string) => void;
-
 export interface IExecBashCommandReturn {
   // Exit code of the process
   code: number;
+  error: any;
+  output: any;
 }
 
 export interface IExecBashCommandOpts {
-  outputCB?: OnDataCallback;
-  errorCB?: OnDataCallback;
-
   // a standard bash command
   // ex: `echo "hi"`
   bashCommand: string;
@@ -37,6 +34,16 @@ export interface IExecBashCommandOpts {
   //
   inputs?: CLIInputs;
 
+  outputCB?: any;
+  errorCB?: any;
+
+  // only writes to `outputCB` instead of `errorCB` (good to use with git commands)
+  onlyOutputCB?: boolean;
+
+  // Should we print out all the calls to the output and error mocks
+  // otherwise use
+  debug?: boolean;
+
   // time to wait in between sending inputs
   // if one of your commands takes longer than the default
   // 100 ms increase this parameter
@@ -44,58 +51,76 @@ export interface IExecBashCommandOpts {
 
   // Which directory should the CLI execute in
   cwd?: string;
-
-  // Should we print out all the calls to the output and error mocks
-  // otherwise use
-  debug?: boolean;
 }
 
-export default async ({
-  outputCB,
-  errorCB,
+export default ({
   bashCommand,
   inputs,
+
   timeoutBetweenInputs = DEFAULT_TIMEOUT_BETWEEN_INPUTS,
-  cwd,
-  debug = false
+
+  outputCB,
+  errorCB,
+  debug = false,
+  onlyOutputCB,
+
+  cwd
 }: IExecBashCommandOpts): Promise<IExecBashCommandReturn> =>
-  new Promise(async (resolve, reject) => {
+  new Promise((resolve, reject) => {
+    const output = `Executing command "${bashCommand}" in ${cwd}`;
+    debug && console.log(output);
+    outputCB && outputCB();
     const proc = child_process.exec(bashCommand, {
       cwd
     });
 
     proc.stdout.on("data", data => {
-      if (debug) {
-        console.log(data);
-      }
+      debug && console.log(data);
       outputCB && outputCB(data);
     });
 
     proc.stderr.on("data", data => {
-      if (debug) {
-        console.error(data);
+      if (onlyOutputCB) {
+        debug && console.log(data);
+        outputCB && outputCB(data);
+      } else {
+        debug && console.error(data);
+        errorCB && errorCB(data);
       }
-      errorCB && errorCB(data);
     });
 
-    if (inputs) {
-      await sendInputs({
-        inputs,
-        stdin: proc.stdin,
-        timeoutBetweenInputs
-      });
-    }
+    const sendInputsPromise = sendInputs({
+      inputs,
+      stdin: proc.stdin,
+      timeoutBetweenInputs
+    });
 
     proc.on("exit", code => {
-      if (code === 0) {
-        resolve({
-          code
-        });
-      } else {
-        reject({
-          code,
-          message: `Failed executing "${bashCommand}" with exit code: ${code}`
-        });
-      }
+      sendInputsPromise.then(
+        () => {
+          if (code === 0) {
+            resolve({
+              code,
+              error: errorCB,
+              output: outputCB
+            });
+          } else {
+            reject({
+              code,
+              message: `Failed executing "${bashCommand}" with exit code: ${code}`,
+              error: errorCB,
+              output: outputCB
+            });
+          }
+        },
+        message => {
+          reject({
+            code: 1,
+            message,
+            error: errorCB,
+            output: outputCB
+          });
+        }
+      );
     });
   });

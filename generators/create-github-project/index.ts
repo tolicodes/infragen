@@ -30,23 +30,21 @@ export default async ({
   };
 
   // Ask user for origin
-  // const { gitOrigin } = await prompt([
-  //   {
-  //     message: "What is your git origin (from github)?",
-  //     name: "gitOrigin",
-  //     type: "input"
-  //   }
-  // ]);
-
-  // await new Promise(resolve => setTimeout(resolve, 3000));
-
-  const gitOrigin = `git@github.com:tolicodes/test.git`;
+  const { gitOrigin } = await prompt([
+    {
+      message: "What is your git origin (from github)?",
+      name: "gitOrigin",
+      type: "input"
+    }
+  ]);
 
   // link git origin to the user input
   outputCB(`Cloning "${gitOrigin}"`);
 
   await execBashCommand({
-    bashCommand: `git clone ${gitOrigin}`,
+    bashCommand: `git clone --progress --verbose ${gitOrigin}`,
+    // use because git commands output to stderr
+    onlyOutputCB: true,
     ...execBashCommandOpts
   });
 
@@ -59,18 +57,16 @@ export default async ({
 
   await execBashCommand({
     bashCommand: `touch README.md`,
-    ...execBashCommandOpts
+    ...execBashCommandOpts,
+    cwd: `${cwd}/${projectDir[1]}`
   });
 
   // Pushes it up
   outputCB(`Pushing to origin master`);
 
   await execBashCommand({
-    bashCommand: `echo "ToliTest"`,
-    ...execBashCommandOpts
-  });
-
-  await execBashCommand({
+    // use because git commands output to stderr
+    onlyOutputCB: true,
     bashCommand: `git add . && git commit -m "README" && git push -u origin master`,
     ...execBashCommandOpts
   });

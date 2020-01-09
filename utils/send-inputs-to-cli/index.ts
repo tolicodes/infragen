@@ -1,5 +1,3 @@
-import { rejects } from "assert";
-
 // anything less and inquirer doesn't catch it
 export const DEFAULT_TIMEOUT_BETWEEN_INPUTS = 400;
 
@@ -31,6 +29,8 @@ export default async ({
   stdin = process.stdin,
   timeoutBetweenInputs = DEFAULT_TIMEOUT_BETWEEN_INPUTS
 }: ISendInputsToCli): Promise<void> => {
+  if (!inputs) return Promise.resolve();
+
   // go through each input, waiting for the last timeout to
   // resolve
   // write the input to stdin

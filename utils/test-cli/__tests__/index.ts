@@ -11,7 +11,7 @@ const PROJECT_ROOT = `${__dirname}/..`;
 // we need to pass the ts configuration because this is now in a different directory
 const TS_NODE_BASH_COMMAND = `ts-node --project "${__dirname}/../tsconfig.json" `;
 
-const CLI_TIMEOUT = 180000
+const CLI_TIMEOUT = 180000;
 const DEFAULT_TIMEOUT = 5000;
 
 const STD_CLI_INPUTS = [
@@ -48,7 +48,7 @@ describe("@infragen/util-test-cli", () => {
 
   it("tests a CLI run as a bash command", async () => {
     const { code, error, output }: ITestCLIReturn = await testCLI({
-      bashCommand: `pwd && ts-node ./mockCLIs/standard.ts`,
+      bashCommand: `ts-node ./mockCLIs/standard.ts`,
       cwd: PROJECT_ROOT,
       inputs: STD_CLI_INPUTS
     });
