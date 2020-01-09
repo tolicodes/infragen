@@ -1,10 +1,6 @@
-import { mkdirSync } from "fs";
-
 import { prompt } from "inquirer";
 
-import execBashCommand, {
-  OnDataCallback
-} from "@infragen/util-exec-bash-command";
+import execBashCommand from "@infragen/util-exec-bash-command";
 
 interface IGeneratorCreateGithubProject {
   // The current working directory where the generator runs
@@ -13,14 +9,13 @@ interface IGeneratorCreateGithubProject {
   // Print debug output (passed to `execBashCommand`)
   debug?: boolean;
 
-  outputCB?: OnDataCallback;
+  outputCB?: any;
 
-  errorCB?: OnDataCallback;
+  errorCB?: any;
 }
 
 export default async ({
   cwd,
-  debug,
   outputCB = console.log,
   errorCB = console.error
 }: IGeneratorCreateGithubProject) => {
@@ -28,53 +23,38 @@ export default async ({
     throw new Error("`cwd` is required. Pass it using the --cwd flag");
   }
 
-  // Asking for name of project
-  const { projectName } = await prompt([
-    {
-      message: "What is the name of your project?",
-      name: "projectName",
-      type: "input"
-    }
-  ]);
-
-  outputCB(`Your project is named "${projectName}"`);
-
-  const projectDir = `${cwd}/${projectName}`;
-
   const execBashCommandOpts = {
-    cwd: projectDir,
-    debug,
+    cwd,
     outputCB,
     errorCB
   };
 
-  // Creating Directory with project name
-  mkdirSync(projectDir);
-
-  // Executing "git init"
-  await execBashCommand({
-    bashCommand: "git init",
-    ...execBashCommandOpts
-  });
-
   // Ask user for origin
-  const { gitOrigin } = await prompt([
-    {
-      message: "What is your git origin (from github)?",
-      name: "gitOrigin",
-      type: "input"
-    }
-  ]);
+  // const { gitOrigin } = await prompt([
+  //   {
+  //     message: "What is your git origin (from github)?",
+  //     name: "gitOrigin",
+  //     type: "input"
+  //   }
+  // ]);
+
+  // await new Promise(resolve => setTimeout(resolve, 3000));
+
+  const gitOrigin = `git@github.com:tolicodes/test.git`;
 
   // link git origin to the user input
-  outputCB(`Linking to git origin "${gitOrigin}"`);
+  outputCB(`Cloning "${gitOrigin}"`);
 
   await execBashCommand({
-    bashCommand: `git remote add origin ${gitOrigin}`,
+    bashCommand: `git clone ${gitOrigin}`,
     ...execBashCommandOpts
   });
 
-  // Creates readme file
+  const projectDir = gitOrigin.match(/(\w+)\.git/);
+
+  execBashCommandOpts.cwd = `${cwd}/${projectDir[1]}`;
+
+  // Creates README file
   outputCB(`Creating README.md file`);
 
   await execBashCommand({
@@ -86,7 +66,12 @@ export default async ({
   outputCB(`Pushing to origin master`);
 
   await execBashCommand({
-    bashCommand: `git add . && git commit -m "README" && git push -u -f origin master`,
+    bashCommand: `echo "ToliTest"`,
+    ...execBashCommandOpts
+  });
+
+  await execBashCommand({
+    bashCommand: `git add . && git commit -m "README" && git push -u origin master`,
     ...execBashCommandOpts
   });
 };

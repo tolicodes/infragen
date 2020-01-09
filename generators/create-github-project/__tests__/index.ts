@@ -27,16 +27,12 @@ describe("@infragen/generator-create-github-project", () => {
   let TEST_CLI_PARAMS;
   beforeEach(async () => {
     cwd = `${TMP_DIR}${uuidv4()}`;
-    projectDirectory = `${cwd}/my-new-project`;
+    projectDirectory = `${cwd}/test`;
     await ensureDir(cwd);
 
     TEST_CLI_PARAMS = {
       bashCommand: `yarn start --cwd ${cwd}`,
       inputs: [
-        // Answers "Name of the project"
-        "my-new-project",
-        // Continue
-        ENTER,
         // Answers "What is your git origin (from github)?"
         "git@github.com:tolicodes/test.git",
         // Continue
@@ -48,6 +44,12 @@ describe("@infragen/generator-create-github-project", () => {
   });
 
   afterEach(async () => {
+    // get rid of readme
+    await execBashCommand({
+      bashCommand: `rm README.md && git add . && git commit 'remove README' && git push`,
+      cwd: projectDirectory
+    });
+
     await remove(cwd);
   });
 
@@ -78,81 +80,46 @@ describe("@infragen/generator-create-github-project", () => {
     }
   });
 
-  it("should ask the user for the name of the project", async () => {
-    const { code, error, output } = await testCLI(TEST_CLI_PARAMS);
-
-    expect(error.mock.calls.length).toBe(0);
-    expect(code).toBe(0);
-    expect(output).toBeCalledWith(
-      expect.stringContaining("What is the name of your project?")
-    );
-    expect(output).toBeCalledWith(
-      expect.stringContaining('Your project is named "my-new-project"')
-    );
-  });
-
-  it("should create a local directory with that name", async () => {
-    const { code, error } = await testCLI(TEST_CLI_PARAMS);
-
-    expect(error.mock.calls.length).toBe(0);
-    expect(code).toBe(0);
-
-    expect(existsSync(projectDirectory)).toBe(true);
-  });
-
-  it("should run `git init`", async () => {
-    const { code, error, output } = await testCLI({
-      ...TEST_CLI_PARAMS
-    });
-
-    expect(error.mock.calls.length).toBe(0);
-    expect(code).toBe(0);
-
-    expect(output).toBeCalledWith(
-      expect.stringContaining("Initialized empty Git repository in")
-    );
-
-    expect(existsSync(`${projectDirectory}/.git`)).toBe(true);
-  });
-
   // // @todo figure this out later
   // // it('should create a remote Github project with that name');
 
   it("should ask the user to create a remote Github project with that name and pass the url for the origin", async () => {
     const { code, error, output } = await testCLI(TEST_CLI_PARAMS);
 
-    expect(error.mock.calls.length).toBe(0);
+    // For some reason `git clone` writes to stderr
+    // https://stackoverflow.com/questions/34820975/git-clone-redirect-stderr-to-stdout-but-keep-errors-being-written-to-stderr/34841363
+    // @todo look into this
+    expect(error.mock.calls.length).toBe(1);
     expect(code).toBe(0);
     expect(output).toBeCalledWith(
       expect.stringContaining("What is your git origin (from github)?")
     );
-    expect(output).toBeCalledWith(
-      expect.stringContaining(
-        'Linking to git origin "git@github.com:tolicodes/test.git"'
-      )
-    );
   });
 
-  it("should link the origin of the local directory to the Github project", async () => {
-    const { code, error } = await testCLI(TEST_CLI_PARAMS);
-    expect(error.mock.calls.length).toBe(0);
+  it("should clone the Github project", async () => {
+    const { code, error, output } = await testCLI(TEST_CLI_PARAMS);
+    // For some reason `git clone` writes to stderr
+    // https://stackoverflow.com/questions/34820975/git-clone-redirect-stderr-to-stdout-but-keep-errors-being-written-to-stderr/34841363
+    // @todo look into this
+    expect(error.mock.calls.length).toBe(1);
     expect(code).toBe(0);
 
-    const outputCB = jest.fn();
-    await execBashCommand({
-      bashCommand: "git config --get remote.origin.url",
-      cwd: projectDirectory,
-      outputCB
-    });
-
-    expect(outputCB).toBeCalledWith(
-      expect.stringContaining("git@github.com:tolicodes/test.git")
+    expect(output).toBeCalledWith(
+      expect.stringContaining('Cloning "git@github.com:tolicodes/test.git"')
     );
+
+    expect(existsSync(`${projectDirectory}/.git`)).toBe(true);
   });
 
   it("should add a README.md file", async () => {
-    const { code, error } = await testCLI(TEST_CLI_PARAMS);
-    expect(error.mock.calls.length).toBe(0);
+    const { code, error } = await testCLI({
+      ...TEST_CLI_PARAMS
+    });
+
+    // For some reason `git clone` writes to stderr
+    // https://stackoverflow.com/questions/34820975/git-clone-redirect-stderr-to-stdout-but-keep-errors-being-written-to-stderr/34841363
+    // @todo look into this
+    expect(error.mock.calls.length).toBe(1);
     expect(code).toBe(0);
 
     expect(existsSync(`${projectDirectory}/README.md`)).toBe(true);
@@ -160,9 +127,13 @@ describe("@infragen/generator-create-github-project", () => {
 
   it.only("should push to origin master", async () => {
     const { code, error, output } = await testCLI({
-      ...TEST_CLI_PARAMS
+      ...TEST_CLI_PARAMS,
+      debug: true
     });
-    expect(error.mock.calls.length).toBe(0);
+    // For some reason `git clone` writes to stderr
+    // https://stackoverflow.com/questions/34820975/git-clone-redirect-stderr-to-stdout-but-keep-errors-being-written-to-stderr/34841363
+    // @todo look into this
+    expect(error.mock.calls.length).toBe(1);
     expect(code).toBe(0);
 
     expect(output).toBeCalledWith(
@@ -170,7 +141,5 @@ describe("@infragen/generator-create-github-project", () => {
         "Branch 'master' set up to track remote branch 'master' from 'origin'"
       )
     );
-
-    //
   });
 });
