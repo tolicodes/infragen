@@ -672,3 +672,132 @@ const { code, error, output } = await testCLI({
 ```
 
 Now we have a clean passing test. Now is a good time to do a commit.
+
+### Passing Parameters to CLI
+
+So we know we have to create a directory inside another CWD. And we should be able to pass that CWD either via command line or if we include it as part of another script just as a parameter. So we will add:
+
+`infragen/generators/create-github-project/index.ts`
+
+```typescript
+import { mkdirSync } from "fs";
+
+import { prompt } from "inquirer";
+
+interface IGeneratorCreateGithubProject {
+  // The current working directory where the generator runs
+  cwd: string;
+}
+
+export default async ({ cwd }: IGeneratorCreateGithubProject) => {
+  const { projectName } = await prompt([
+    {
+      message: "What is the name of your project?",
+      name: "projectName",
+      type: "input"
+    }
+  ]);
+
+  console.log(`Your project is named "${projectName}"`);
+
+  // mkdirSync(`${cwd}/${projectName}`);
+};
+```
+
+The test errors:
+
+`infragen/generators/create-github-project yarn test:watch`
+
+```
+  console.error ../../utils/test-cli/index.ts:115
+    /Users/toli/ToliCodes Dropbox/Anatoliy Zaslavskiy/Sites/infragen/generators/create-github-project/node_modules/ts-node/src/index.ts:293
+        return new TSError(diagnosticText, diagnosticCodes)
+               ^
+    TSError: ⨯ Unable to compile TypeScript:
+    cli.ts(3,1): error TS2554: Expected 1 arguments, but got 0.
+
+        at createTSError (/Users/toli/ToliCodes Dropbox/Anatoliy Zaslavskiy/Sites/infragen/generators/create-github-project/node_modules/ts-node/src/index.ts:293:12)
+        at reportTSError (/Users/toli/ToliCodes Dropbox/Anatoliy Zaslavskiy/Sites/infragen/generators/create-github-project/node_modules/ts-node/src/index.ts:297:19)
+        at getOutput (/Users/toli/ToliCodes Dropbox/Anatoliy Zaslavskiy/Sites/infragen/generators/create-github-project/node_modules/ts-node/src/index.ts:399:34)
+        at Object.compile (/Users/toli/ToliCodes Dropbox/Anatoliy Zaslavskiy/Sites/infragen/generators/create-github-project/node_modules/ts-node/src/index.ts:457:32)
+        at Module.m._compile (/Users/toli/ToliCodes Dropbox/Anatoliy Zaslavskiy/Sites/infragen/generators/create-github-project/node_modules/ts-node/src/index.ts:536:43)
+        at Module._extensions..js (internal/modules/cjs/loader.js:995:10)
+        at Object.require.extensions.<computed> [as .ts] (/Users/toli/ToliCodes Dropbox/Anatoliy Zaslavskiy/Sites/infragen/generators/create-github-project/node_modules/ts-node/src/index.ts:539:12)
+        at Module.load (internal/modules/cjs/loader.js:815:32)
+        at Function.Module._load (internal/modules/cjs/loader.js:727:14)
+        at Function.Module.runMain (internal/modules/cjs/loader.js:1047:10)
+
+```
+
+which is referring to the first parameter of `index.ts` not being passed in `cli.ts`.
+
+So to fix that we need a way to pass params via CLI. For this we should install a tool called `commander.js` which parses arguments much better than just reading `process.argv`.
+
+So to add it we run:
+
+`infragen/`
+
+```bash
+lerna add --scope=@infragen/generator-create-github-project commander
+```
+
+And then we fill out our `cli.ts` to accept `cwd` as an argument
+
+`infragen/generators/create-github-project/cli.ts`
+
+```typescript
+import generator from ".";
+import * as commander from "commander";
+
+commander.option("-c, --cwd", "current working directory");
+
+commander.parse(process.argv);
+
+generator({
+  cwd: commander.cwd
+});
+```
+
+### Checking for Required Parameters, Running only Current Test in Jest
+
+The test errors:
+
+`infragen/generators/create-github-project yarn test:watch`
+
+```
+console.error ../../utils/test-cli/index.ts:115
+    (node:37982) UnhandledPromiseRejectionWarning: Error: ENOENT: no such file or directory, mkdir 'undefined/my-new-project'
+        at Object.mkdirSync (fs.js:823:3)
+        at /Users/toli/ToliCodes Dropbox/Anatoliy Zaslavskiy/Sites/infragen/generators/create-github-project/index.ts:20:3
+        at step (/Users/toli/ToliCodes Dropbox/Anatoliy Zaslavskiy/Sites/infragen/generators/create-github-project/index.ts:33:23)
+        at Object.next (/Users/toli/ToliCodes Dropbox/Anatoliy Zaslavskiy/Sites/infragen/generators/create-github-project/index.ts:14:53)
+        at fulfilled (/Users/toli/ToliCodes Dropbox/Anatoliy Zaslavskiy/Sites/infragen/generators/create-github-project/index.ts:5:58)
+        at processTicksAndRejections (internal/process/task_queues.js:93:5)
+```
+
+This is expected, because we didn't pass a `cwd` argument. But it's not the best error. Let's specifically test that it checks for `cwd` and errors if it doesn't.
+
+So we actually have to create a new test. Note how I made it a `it.only` block instead of `it`. We know all of our other tests will fail, so let's just get this test passing and then turn it back into an `it`
+
+`infragen/generators/create-github-project/__tests__/index.ts`
+
+```typescript
+it.only("should throw an error if `cwd` is not passed", async () => {
+  const { code, error, output } = await testCLI({
+    bashCommand: `yarn start`,
+    debug: true,
+    inputs: [
+      // Answers "Name of the project"
+      "my-new-project",
+      // Continue
+      ENTER
+    ]
+  });
+
+  expect(error.mock.calls.length).toBe(1);
+  expect(code).toBe(1);
+  expect(error).toBeCalledWith(
+    expect.stringMatching(/`cwd` is required. Pass it using the --cwd flag/)
+  );
+});
+```

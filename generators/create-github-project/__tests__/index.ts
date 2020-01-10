@@ -65,7 +65,7 @@ describe("@infragen/generator-create-github-project", () => {
       await testCLI({
         // it will yell at us for stream being closed early
         // @todo update this when we have proper handling for stream being closes early
-        // inputs: null,
+        // inputs: [],
         bashCommand: `yarn start`,
         // this is the cwd of the command `yarn start` NOT the internal execution env of the script `yarn start` calls
         cwd: PROJECT_ROOT
