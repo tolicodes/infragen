@@ -2,9 +2,106 @@
 
 Now that we have our boilerplate for testing and compiling, we can actually start writing some code. All we have to do is take a look at our tasks and tackle them one at a time.
 
-There's actually quite a lot of work we have to do before we start writing tests.
+But there's still quite a lot of work we have to do before we start working on our tests. That's why I've created 3 sections:
 
-I wrote out a bunch of these things in [Writing Tests - Common Errors](./writing-tests-common-errors.md)
+- [Building CLI Test Utils](./building-cli-test-util.md): here we build a utility that will be used to test CLIs. Sometimes you start writing code and realize...there's not a simple way to test it. We know we will have a CLI which would run `inquirer` and take some input from the user, but upon extensive searching I couldn't find a utility that sufficiently tests sending inputs and checking that the outputs are correct. I decided to invest the time in writing a robust CLI tester, since everything we are going to be creating from this point forward will need a CLI. I wrote one before, in my first attempt at InfraGen, so I decided to branch off and fully test it. There's actually a lot more to it than I initially thought. Luckily you don't have to worry about it, you can just install my finished utilities in your project:
+  `yarn add --dev @infragen/util-test-cli @infragen/util-send-inputs-to-cli`. If you're interested in how it works, check out [this PR](https://github.com/hoverinc/infragen/pull/7) for all the source code, docs, etc
+- [Building Exec Bash Command Util](./building-exec-bash-util.md): here we build a common utility to execute bash commands (for running `git` commands, or `touch`ing files). I started off this PR by manually writing the code, but eventually noticed that I am reusing it in 6+ places in various variations. So I spun off a PR that will have that utility for us. You can install it by running the following in your project: `yarn add --dev @infragen/util-exec-bash-command`. If you're interested in how it works, check out [this PR](https://github.com/hoverinc/infragen/pull/9) for all the source code, docs, etc
+- [Writing Tests - Common Setup and Errors](./writing-tests-common-setup-and-errors.md): this goes over a few common things we need to do before we write our test definitions for `create-github-project`. It details common error messages you might get in the process, especially while working in a monorepo setup. You can check out [this PR](https://github.com/hoverinc/infragen/pull/11) to see all the setup
+
+## Prepare: Doing A Manual Run of Our Commands
+
+Before we write any code, let's do a manual run of the commands to achieve our purpose.
+
+Initially I thought it would be easier to ask for a folder name and remote, and link the 2 together, but upon experimenting I found that it's easier just to clone the remote repo.
+
+So our new tests are:
+
+`infragen/generators/create-github-project/__test__/index.ts`
+
+```typescript
+it.todo(
+  "should ask the user to create a remote Github project with that name and pass the url for the origin"
+);
+
+it.todo("should clone the Github project");
+
+it.todo("should add a README.md file");
+
+it.todo("should push to origin master");
+```
+
+## @infragen/generator-create-github-project - should ask the user to create a remote Github project with that name and pass the url for the origin
+
+So using our CLI tester, let's write our first test:
+
+`infragen/generators/create-github-project/__test__/index.ts`
+
+```typescript
+import testCLI from "@infragen/util-test-cli";
+import { ENTER } from "@infragen/util-send-inputs-to-cli";
+
+describe("@infragen/generator-create-github-project", () => {
+  import { ensureDir, remove } from "fs-extra";
+  import { v4 as uuidv4 } from "uuid";
+
+  const TMP_DIR = "/tmp/";
+  const PROJECT_ROOT = `${__dirname}/..`;
+
+  let containerDir;
+  let projectDir;
+  let testCLIParams;
+
+  beforeEach(async () => {
+    containerDir = `${TMP_DIR}${uuidv4()}`;
+    projectDir = `${containerDir}/test`;
+    await ensureDir(containerDir);
+
+    testCLIParams = {
+      bashCommand: `yarn start --cwd ${containerDir}`,
+      inputs: [
+        // Answers "What is your git origin (from github)?"
+        "git@github.com:tolicodes/test.git",
+        // Continue
+        ENTER
+      ],
+      timeoutBetweenInputs: 2000,
+      cwd: PROJECT_ROOT
+    };
+  });
+
+  afterEach(async () => {
+    await remove(cwd);
+  });
+
+  // ...
+
+  it("should ask the user to create a remote Github project with that name and pass the url for the origin", async () => {
+    const { code, error, output } = await testCLI({
+      ...testCLIParams,
+      bashCommand: `yarn start --cwd ${containerDir}`
+    });
+
+    expect(error.mock.calls.length).toBe(0);
+    expect(code).toBe(0);
+    expect(output).toBeCalledWith(
+      expect.stringContaining("What is your git origin (from github)?")
+    );
+  });
+  // ...
+});
+```
+
+Note that:
+
+- We need a `beforeEach` where we setup a temporary `containerDir` to clone our project into (`/tmp/<random UUID>`). It will be destroyed in the `afterEach`
+- In the `afterEach` we are using `done` syntax which lets jest know we are done with an action. For reason just using `async/await` does not work in this instance
+- We need to define the `projectDir` which will be the `cwd` once we have cloned
+- We save the common params for `testCLI` (`bashCommand`' `inputs`, `timeoutBetweenInputs` and `cwd`) to a variable that we will pass around.
+- Note that the `cwd` in the `testCLIParams.cwd` refers to where the `yarn start` command is being executed out of (which is one level up from this test file)
+- Note that the `cwd` passed in the `bashCommand` `--cwd` flag refers to the `cwd` the script will be working in (performing bash operations like `git clone` and `touch README.md`). It will gb the `projectDir` in every command after the first one. But it will start in the `containerDir` (which is just a temporary directory)
+- We need to set `timeoutBetweenInputs` to `2000` because some prompts take a while.
+- For some reason `git clone` writes to `stderr` so we will just expect that
 
 ## @infragen/generator-create-github-project - should throw an error if `cwd` is not passed
 
@@ -425,7 +522,7 @@ it("should ask the user to create a remote Github project with that name and pas
 });
 ```
 
-### Asking for git origin
+### Asking for git origin using inquirer
 
 We can copy the code for this from our "Ask for project name" step.
 
@@ -769,6 +866,8 @@ await new Promise((resolve, reject) => {
 });
 ```
 
+This is actually done in [this PR](https://github.com/hoverinc/infragen/pull/9). You can also read the guide [here]([Building Exec Bash Command Util](./building-exec-bash-util.md))
+
 ### Boilerplate - Create Infragen Package
 
 We can copy the boilerplate from our `test-cli` utility. This is also a good chance to take notes for our `create-infragen-package` generator (a generator that will be used to create new infragen packages).
@@ -786,506 +885,6 @@ We just edit the `package.json`:
 ```
 
 And then we take notes in `infragen/generators/create-infragen-package/__tests__/index.ts`
-
-### Boilerplate - Exec Bash Command Util
-
-Let's see that we need from the `test-cli` copy and take notes in `@infragen/generator-create-infragen-package` as we figure it out.
-
-It turns out we need just about everything except for the node stuff. We just rename the `testCLI` command to `execBashCommand` and switch the typings.
-
-`infragen/generators/create-infragen-package/__tests__/index.ts`
-
-```typescript
-import { ensureDir } from "fs-extra";
-import { v4 as uuidv4 } from "uuid";
-
-import execBashCommand, { IExecBashCommandReturn } from "../";
-import { SPACE, DOWN, ENTER } from "@infragen/util-send-inputs-to-cli";
-
-const CLI_TIMEOUT = 180000;
-const DEFAULT_TIMEOUT = 5000;
-const TMP_DIR = "/tmp/";
-
-const STD_CLI_INPUTS = [
-  // Check "Option 1"
-  SPACE,
-
-  // Move to "Option 2"
-  DOWN,
-
-  // Move to "Option 3"
-  DOWN,
-
-  // Check "Option 3"
-  SPACE,
-
-  // Next Question
-  ENTER,
-
-  // Type answer to "What's your name"
-  "Anatoliy Zaslavskiy",
-
-  // Submit answer to question
-  ENTER
-];
-
-let DEFAULT_EXEC_BASH_COMMAND_OPTS;
-let error;
-let output;
-
-describe("@infragen/util-exec-bash-command", () => {
-  beforeAll(() => {
-    jest.setTimeout(CLI_TIMEOUT);
-  });
-
-  afterAll(() => {
-    jest.setTimeout(DEFAULT_TIMEOUT);
-  });
-
-  beforeEach(() => {
-    error = jest.fn();
-    output = jest.fn();
-
-    DEFAULT_EXEC_BASH_COMMAND_OPTS = {
-      errorCB: error,
-      outputCB: output
-    };
-  });
-
-  it("runs a bash command", async () => {
-    const { code }: IExecBashCommandReturn = await execBashCommand({
-      ...DEFAULT_EXEC_BASH_COMMAND_OPTS,
-      bashCommand: `echo "hello"`
-    });
-    expect(error.mock.calls.length).toBe(0);
-    expect(code).toBe(0);
-    expect(output).toBeCalledWith(expect.stringContaining("hello"));
-  });
-
-  it("runs a bash command with inputs", async () => {
-    const { code }: IExecBashCommandReturn = await execBashCommand({
-      ...DEFAULT_EXEC_BASH_COMMAND_OPTS,
-      bashCommand: `ts-node ./mockCLIs/standard.ts`,
-      inputs: STD_CLI_INPUTS
-    });
-
-    expect(error.mock.calls.length).toBe(0);
-
-    expect(code).toBe(0);
-
-    expect(output).toBeCalledWith(
-      expect.stringMatching(/Which option do you want to choose\?/)
-    );
-
-    expect(output).toBeCalledWith(expect.stringMatching(/◯ Option 1/));
-
-    expect(output).toBeCalledWith(expect.stringMatching(/◯ Option 3/));
-
-    expect(output).toBeCalledWith(expect.stringMatching(/Option 1 Chosen/));
-
-    expect(output).not.toBeCalledWith(expect.stringMatching(/Option 2 Chosen/));
-
-    expect(output).toBeCalledWith(expect.stringMatching(/Option 3 Chosen/));
-
-    expect(output).toBeCalledWith(
-      expect.stringMatching(/What's your full name\?/)
-    );
-
-    expect(output).toBeCalledWith(
-      expect.stringMatching(/Your name is "Anatoliy Zaslavskiy"/)
-    );
-  });
-
-  it("runs a bash command with different exit code", async () => {
-    try {
-      await execBashCommand({
-        ...DEFAULT_EXEC_BASH_COMMAND_OPTS,
-        bashCommand: `echo "hello" && >&2 echo "Something bad happened 1" && exit 1`
-      });
-    } catch (e) {
-      expect(output).toBeCalledWith(expect.stringContaining("hello"));
-
-      expect(error).toBeCalledWith(
-        expect.stringContaining("Something bad happened")
-      );
-
-      expect(e.code).toBe(1);
-    }
-  });
-
-  it("runs a bash command that outputs to stderr", async () => {
-    const { code }: IExecBashCommandReturn = await execBashCommand({
-      ...DEFAULT_EXEC_BASH_COMMAND_OPTS,
-      bashCommand: `echo "hello" && >&2 echo "Something bad happened 2"`
-    });
-
-    expect(output).toBeCalledWith(expect.stringContaining("hello"));
-
-    expect(error).toBeCalledWith(
-      expect.stringContaining("Something bad happened")
-    );
-
-    expect(code).toBe(0);
-  });
-
-  it("runs a bash command with different timeouts for inputs", async () => {
-    const { code }: IExecBashCommandReturn = await execBashCommand({
-      ...DEFAULT_EXEC_BASH_COMMAND_OPTS,
-      bashCommand: `ts-node ./mockCLIs/timeouts.ts`,
-      inputs: [
-        // Check "Option 1"
-        {
-          input: SPACE,
-          timeoutBeforeInput: 1100
-        },
-
-        // Move to "Option 2"
-        DOWN,
-
-        // Move to "Option 3"
-        DOWN,
-
-        // Check "Option 3"
-        SPACE,
-
-        // Next Question
-        ENTER,
-
-        // Type answer to "What's your name"
-        {
-          input: "Anatoliy Zaslavskiy",
-          timeoutBeforeInput: 2100
-        },
-
-        // Submit answer to question
-        ENTER
-      ]
-    });
-
-    expect(error.mock.calls.length).toBe(0);
-
-    expect(code).toBe(0);
-
-    expect(output).toBeCalledWith(
-      expect.stringMatching(/Which option do you want to choose\?/)
-    );
-
-    expect(output).toBeCalledWith(expect.stringMatching(/◯ Option 1/));
-
-    expect(output).toBeCalledWith(expect.stringMatching(/◯ Option 3/));
-
-    expect(output).toBeCalledWith(expect.stringMatching(/Option 1 Chosen/));
-
-    expect(output).not.toBeCalledWith(expect.stringMatching(/Option 2 Chosen/));
-
-    expect(output).toBeCalledWith(expect.stringMatching(/Option 3 Chosen/));
-
-    expect(output).toBeCalledWith(
-      expect.stringMatching(/What's your full name\?/)
-    );
-
-    expect(output).toBeCalledWith(
-      expect.stringMatching(/Your name is "Anatoliy Zaslavskiy"/)
-    );
-  });
-
-  it("runs a bash command with a different default timeoutBetweenInputs", async () => {
-    const { code }: IExecBashCommandReturn = await execBashCommand({
-      ...DEFAULT_EXEC_BASH_COMMAND_OPTS,
-      bashCommand: `ts-node ./mockCLIs/timeouts.ts`,
-      inputs: [
-        // Check "Option 1"
-        SPACE,
-
-        // Move to "Option 2"
-        DOWN,
-
-        // Move to "Option 3"
-        DOWN,
-
-        // Check "Option 3"
-        SPACE,
-
-        // Next Question
-        ENTER,
-
-        // Type answer to "What's your name"
-        "Anatoliy Zaslavskiy",
-
-        // Submit answer to question
-        ENTER
-      ],
-      timeoutBetweenInputs: 3000
-    });
-
-    expect(error.mock.calls.length).toBe(0);
-
-    expect(code).toBe(0);
-
-    expect(output).toBeCalledWith(
-      expect.stringMatching(/Which option do you want to choose\?/)
-    );
-
-    expect(output).toBeCalledWith(expect.stringMatching(/◯ Option 1/));
-
-    expect(output).toBeCalledWith(expect.stringMatching(/◯ Option 3/));
-
-    expect(output).toBeCalledWith(expect.stringMatching(/Option 1 Chosen/));
-
-    expect(output).not.toBeCalledWith(expect.stringMatching(/Option 2 Chosen/));
-
-    expect(output).toBeCalledWith(expect.stringMatching(/Option 3 Chosen/));
-
-    expect(output).toBeCalledWith(
-      expect.stringMatching(/What's your full name\?/)
-    );
-
-    expect(output).toBeCalledWith(
-      expect.stringMatching(/Your name is "Anatoliy Zaslavskiy"/)
-    );
-  });
-
-  it("runs a bash command in a different cwd", async () => {
-    const cwd = `${TMP_DIR}${uuidv4()}`;
-    await ensureDir(cwd);
-
-    const { code }: IExecBashCommandReturn = await execBashCommand({
-      ...DEFAULT_EXEC_BASH_COMMAND_OPTS,
-      bashCommand: `pwd`,
-      cwd
-    });
-
-    expect(code).toEqual(0);
-
-    expect(output).toBeCalledWith(expect.stringContaining(cwd));
-  });
-});
-```
-
-We also create boilerplate `index.ts`
-
-`infragen/generators/create-infragen-package/index.ts`
-
-```typescript
-it("creates a boilerplate index.ts", () => {
-  // export interface IUtilReturn {
-  //   returnVal1: string;
-  // }
-  // export interface IUtilOpts {
-  //   param1: string;
-  // }
-  // export default async (
-  //   { param1 }: IUtilOpts = {
-  //     param1: "defaultVal"
-  //   }
-  // ): Promise<IUtilReturn> => new Promise(async (resolve, reject) => {});
-});
-```
-
-### Making Tests Pass
-
-Now we can start copying the relevant code from `test-cli` to make everything pass. We basically copy everything except for the node script functionality.
-
-Another key difference is you have to pass in your `output` and `error` callbacks, because this utility will not be exclusively used in a jest context (where `testCLI` just creates mock functions for you). Other than that the code should just work with minor refactors.
-
-`infragen/generators/create-infragen-package/index.ts`
-
-```typescript
-import * as child_process from "child_process";
-
-import sendInputs, {
-  DEFAULT_TIMEOUT_BETWEEN_INPUTS,
-  CLIInputs
-} from "@infragen/util-send-inputs-to-cli";
-
-type DataCallback = (string) => void;
-
-export interface IExecBashCommandReturn {
-  // Exit code of the process
-  code: number;
-}
-
-export interface IExecBashCommandOpts {
-  outputCB?: DataCallback;
-  errorCB?: DataCallback;
-
-  // a standard bash command
-  // ex: `echo "hi"`
-  bashCommand: string;
-
-  // this is a list of inputs that need to be sent to cli
-  // if a string is passed then it will use the default
-  // timeoutBetweenInputs
-  // if an object is passed, you can specify the time to
-  // wait before the input
-  // ex:
-  // [
-  //   'hello',
-  //   '\x20',
-  //   {
-  //     input: 'test'
-  //     timeoutBeforeInput: 1000
-  //   }
-  // ]
-  //
-  inputs?: CLIInputs;
-
-  // time to wait in between sending inputs
-  // if one of your commands takes longer than the default
-  // 100 ms increase this parameter
-  timeoutBetweenInputs?: number;
-
-  // Which directory should the CLI execute in
-  cwd?: string;
-
-  // Should we print out all the calls to the output and error mocks
-  // otherwise use
-  debug?: boolean;
-}
-
-export default async ({
-  outputCB,
-  errorCB,
-  bashCommand,
-  inputs,
-  timeoutBetweenInputs = DEFAULT_TIMEOUT_BETWEEN_INPUTS,
-  cwd,
-  debug = false
-}: IExecBashCommandOpts): Promise<IExecBashCommandReturn> =>
-  new Promise(async (resolve, reject) => {
-    const proc = child_process.exec(bashCommand, {
-      cwd
-    });
-
-    proc.stdout.on("data", data => {
-      if (debug) {
-        console.log(data);
-      }
-      outputCB && outputCB(data);
-    });
-
-    proc.stderr.on("data", data => {
-      if (debug) {
-        console.error(data);
-      }
-      errorCB && errorCB(data);
-    });
-
-    if (inputs) {
-      await sendInputs({
-        inputs,
-        stdin: proc.stdin,
-        timeoutBetweenInputs
-      });
-    }
-
-    proc.on("exit", code => {
-      if (code === 0) {
-        resolve({
-          code
-        });
-      } else {
-        reject({
-          code,
-          message: `Failed executing ${bashCommand} with exit code: ${code}`
-        });
-      }
-    });
-  });
-```
-
-Now we can commit and refactor everything to use our new utility.
-
-### Refactor to using @infragen/util-exec-bash-command
-
-Now we can just do a file search anywhere we have `child_process.exec`.
-
-We do:
-
-```bash
-lerna add --dev --scope=@infragen/generator-create-github-project @infragen/util-exec-bash-command
-```
-
-on each project we want to add the exec util to.
-
-Then we import it at the top:
-
-```typescript
-import execBashCommand from "@infragen/util-exec-bash-command";
-```
-
-We convert the tests to look something like this:
-
-```typescript
-it.only("should link the origin of the local directory to the Github project", async () => {
-  const { code, error } = await testCLI(TEST_CLI_PARAMS);
-  expect(error.mock.calls.length).toBe(0);
-  expect(code).toBe(0);
-
-  const outputCB = jest.fn();
-  await execBashCommand({
-    bashCommand: "git config --get remote.origin.url",
-    cwd: projectDirectory,
-    outputCB
-  });
-
-  expect(outputCB).toBeCalledWith(
-    expect.stringContaining("git@github.com:tolicodes/test.git")
-  );
-});
-```
-
-In the case of actual package code (ex: `create-github-project/index.ts`), we want to pass through a `debug` parameter which will allow us to console.log if needed.
-
-You can look through the [code PR](https://github.com/hoverinc/infragen/pull/8) for the full refactor
-
-### Running All Jest Tests in Lerna
-
-We just refactored a huge chunk of functionality. We can go individually into each package to run `yarn test` but there is a utility to do that for you.
-
-First we have to install on the root level the test watcher and jest
-
-`infragen/`
-
-```bash
-lerna add --scope=infragen --dev jest
-lerna add --scope=infragen --dev jest-watch-lerna-packages
-```
-
-Next we want to create a `jest.config.json` file at the root, referencing that plugin:
-
-`infragen/jest.config.json`
-
-```json
-{
-  "testEnvironment": "node",
-  "transform": {
-    "^.+\\.tsx?$": "ts-jest"
-  },
-  "watchPlugins": ["jest-watch-lerna-packages"]
-}
-```
-
-And finally we want to add the `test` commands to the root `package.json`
-
-`infragen/package.json`
-
-```json
-  "scripts": {
-    "test": "jest --config jest.config.json --runInBand",
-    "test:watch": "jest --config jest.config.json --watch --runInBand"
-  },
-```
-
-Note that we are using `--runInBand` because there are some really weird issues when we run tests in parallel. Will look into this more.
-
-Now we can watch all the tests by running at the root
-
-`infragen/`
-
-```bash
-yarn test:watch
-```
 
 ## @infragen/generator-create-github-project should add a README.md file
 
