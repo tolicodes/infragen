@@ -1,2 +1,3 @@
-# infragen
+# InfraGen
+
 The Infrastructure Generator

@@ -1,0 +1,29 @@
+{
+  "name": "infragen",
+  "version": "1.0.0",
+  "description": "The Infrastructure Generator",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest --config jest.config.json --runInBand",
+    "test:watch": "jest --config jest.config.json --watch --runInBand"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hoverinc/infragen.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/hoverinc/infragen/issues"
+  },
+  "homepage": "https://github.com/hoverinc/infragen#readme",
+  "devDependencies": {
+    "@types/jest": "^24.0.25",
+    "@types/node": "^13.1.4",
+    "jest": "^24.9.0",
+    "jest-watch-lerna-packages": "^1.1.0",
+    "ts-jest": "^24.2.0",
+    "ts-node": "^8.5.4",
+    "typescript": "^3.7.4"
+  }
+}

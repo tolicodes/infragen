@@ -1,0 +1,11 @@
+{
+  "name": "@infragen/generator-create-infragen-package",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "yarn ts-node ."
+  },
+  "author": "",
+  "license": "ISC"
+}
